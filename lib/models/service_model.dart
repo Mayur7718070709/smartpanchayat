@@ -48,6 +48,8 @@ class ServiceModel {
   final String eligibilityEn;
   final List<String> requiredDocuments;
   final List<ServiceFormField> formFields;
+  final bool isOnline;
+  final String? contentStatus;
 
   const ServiceModel({
     required this.id,
@@ -64,7 +66,49 @@ class ServiceModel {
     this.eligibilityEn = 'Any citizen within the Gram Panchayat area',
     this.requiredDocuments = const [],
     this.formFields = const [],
+    this.isOnline = true,
+    this.contentStatus,
   });
+
+  factory ServiceModel.fromApi(Map<String, dynamic> map) {
+    final documents = map['required_documents'];
+    final feeValue = map['fee'];
+    final documentLabels = <String>[];
+    if (documents is List) {
+      for (final item in documents) {
+        if (item is String) {
+          documentLabels.add(item);
+        } else if (item is Map) {
+          final label = item['name'] ?? item['label'] ?? item['title'];
+          if (label != null) documentLabels.add(label.toString());
+        }
+      }
+    } else if (documents is Map) {
+      for (final entry in documents.entries) {
+        documentLabels.add(entry.value?.toString() ?? entry.key.toString());
+      }
+    }
+
+    return ServiceModel(
+      id: map['id'] as String,
+      nameMr: map['name'] as String,
+      nameEn: '',
+      description: map['description'] as String? ?? '',
+      descriptionEn: '',
+      iconName: 'miscellaneous_services',
+      colorHex: '#1565C0',
+      category: map['category_name'] as String? ?? 'other',
+      processingDays: map['estimated_days'] as int? ?? 0,
+      fee: feeValue is num
+          ? feeValue.toDouble()
+          : double.parse(feeValue.toString()),
+      eligibilityMr: '',
+      eligibilityEn: '',
+      requiredDocuments: documentLabels,
+      isOnline: map['is_online'] as bool? ?? false,
+      contentStatus: map['content_status'] as String?,
+    );
+  }
 
   factory ServiceModel.fromMap(Map<String, dynamic> map) {
     return ServiceModel(
@@ -148,8 +192,9 @@ class ServiceModel {
       case 'documents':
         return 'कागदपत्रे';
       case 'other':
-      default:
         return 'इतर';
+      default:
+        return category;
     }
   }
 }

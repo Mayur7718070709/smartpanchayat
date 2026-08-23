@@ -2,17 +2,74 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../../models/service_model.dart';
-import '../../../theme/app_theme.dart';
+import '../../core/app_runtime.dart';
+import '../../models/service_model.dart';
+import '../../theme/app_theme.dart';
 import './application_form_screen.dart';
 
-class ServiceDetailScreen extends StatelessWidget {
+class ServiceDetailScreen extends StatefulWidget {
   final ServiceModel service;
 
   const ServiceDetailScreen({required this.service, super.key});
 
   @override
+  State<ServiceDetailScreen> createState() => _ServiceDetailScreenState();
+}
+
+class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
+  late ServiceModel _service;
+  bool _isLoading = false;
+  Object? _loadError;
+
+  ServiceModel get service => _service;
+
+  @override
+  void initState() {
+    super.initState();
+    _service = widget.service;
+    if (AppRuntime.usesRealApi) _loadService();
+  }
+
+  Future<void> _loadService() async {
+    setState(() {
+      _isLoading = true;
+      _loadError = null;
+    });
+    try {
+      final service = await AppRuntime.services.fetchById(widget.service.id);
+      if (!mounted) return;
+      _service = service;
+    } catch (error) {
+      if (!mounted) return;
+      _loadError = error;
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    if (_loadError != null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Service Details')),
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Unable to load service details.'),
+              const SizedBox(height: 12),
+              ElevatedButton(
+                onPressed: _loadService,
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
     return Scaffold(
       backgroundColor: AppTheme.backgroundLight,
       body: CustomScrollView(
@@ -203,6 +260,9 @@ class ServiceDetailScreen extends StatelessWidget {
   }
 
   Widget _buildEligibilityCard() {
+    if (service.eligibilityEn.isEmpty && service.eligibilityMr.isEmpty) {
+      return const SizedBox.shrink();
+    }
     return _SectionCard(
       icon: Icons.how_to_reg_outlined,
       titleMr: 'पात्रता',
@@ -371,6 +431,14 @@ class ServiceDetailScreen extends StatelessWidget {
         height: 52,
         child: ElevatedButton(
           onPressed: () {
+            if (AppRuntime.usesRealApi) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Online applications are not available yet.'),
+                ),
+              );
+              return;
+            }
             HapticFeedback.mediumImpact();
             Navigator.push(
               context,
