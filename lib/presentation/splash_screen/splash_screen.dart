@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../theme/app_theme.dart';
 import '../../routes/app_routes.dart';
 import 'package:go_router/go_router.dart';
+import '../../core/app_runtime.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -73,11 +74,26 @@ class _SplashScreenState extends State<SplashScreen>
     final prefs = await SharedPreferences.getInstance();
     final hasLanguage = prefs.getString('selected_language') != null;
     if (!mounted) return;
-    if (hasLanguage) {
-      context.go(AppRoutes.loginScreen);
-    } else {
+    if (!hasLanguage) {
       context.go(AppRoutes.languageSelectionScreen);
+      return;
     }
+
+    if (AppRuntime.usesRealApi && AppRuntime.auth.hasSession) {
+      try {
+        final authContext = await AppRuntime.authContext.fetch();
+        if (authContext.isReadyCitizen && mounted) {
+          context.go(AppRoutes.homeScreen);
+          return;
+        }
+      } catch (_) {
+        // A persisted Supabase session is not sufficient by itself. FastAPI
+        // must resolve an active tenant-scoped citizen context.
+      }
+      await AppRuntime.auth.signOut();
+      if (!mounted) return;
+    }
+    context.go(AppRoutes.loginScreen);
   }
 
   @override
