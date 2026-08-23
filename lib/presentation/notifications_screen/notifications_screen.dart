@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../core/app_runtime.dart';
+import '../../core/network/api_exception.dart';
 import '../../data/mock_notifications.dart';
 import '../../models/notification_model.dart';
 import '../../theme/app_theme.dart';
@@ -18,6 +20,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   bool _isLoading = true;
   bool _hasError = false;
   bool _isOffline = false;
+  bool _featureUnavailable = false;
   List<NotificationModel> _notifications = [];
 
   @override
@@ -31,8 +34,18 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       _isLoading = true;
       _hasError = false;
       _isOffline = false;
+      _featureUnavailable = false;
     });
     try {
+      if (AppRuntime.usesRealApi) {
+        await AppRuntime.notifications.checkAvailability();
+        if (!mounted) return;
+        setState(() {
+          _featureUnavailable = true;
+          _isLoading = false;
+        });
+        return;
+      }
       final result = await Connectivity().checkConnectivity();
       if (result.contains(ConnectivityResult.none)) {
         setState(() {
@@ -46,7 +59,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         _notifications = List.from(MockNotifications.notifications);
         _isLoading = false;
       });
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _featureUnavailable =
+            error.code == ApiErrorCode.databaseContractGap ||
+            error.code == ApiErrorCode.featureNotEnabled;
+        _hasError = !_featureUnavailable;
+        _isLoading = false;
+      });
     } catch (_) {
+      if (!mounted) return;
       setState(() {
         _hasError = true;
         _isLoading = false;
@@ -167,6 +190,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     if (_isLoading) return _buildLoadingState();
     if (_isOffline) return _buildOfflineState();
     if (_hasError) return _buildErrorState();
+    if (_featureUnavailable) return _buildUnavailableState();
     if (_notifications.isEmpty) return _buildEmptyState();
     return _buildNotificationList();
   }
@@ -176,6 +200,36 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       padding: const EdgeInsets.all(16),
       itemCount: 6,
       itemBuilder: (_, __) => _NotificationSkeleton(),
+    );
+  }
+
+  Widget _buildUnavailableState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.notifications_paused_outlined,
+              size: 64,
+              color: AppTheme.textTertiary,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Notifications unavailable',
+              style: AppTheme.headingSmall,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Production recipient, retention, read-state, and device-token rules are awaiting approval.',
+              style: AppTheme.bodySmall,
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
     );
   }
 
