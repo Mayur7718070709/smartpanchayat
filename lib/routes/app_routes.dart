@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../presentation/home_screen/home_screen.dart';
 import '../presentation/login_screen/login_screen.dart';
 import '../presentation/services_screen/services_screen.dart';
+import '../presentation/service_requests_screen/service_requests_screen.dart';
 import '../presentation/complaints_screen/complaints_screen.dart';
 import '../presentation/notices_screen/notices_screen.dart';
 import '../presentation/schemes_screen/schemes_screen.dart';
@@ -29,6 +30,7 @@ class AppRoutes {
   static const String panchayatConfirmationScreen = '/panchayat-confirmation';
   static const String homeScreen = '/home-screen';
   static const String servicesScreen = '/services-screen';
+  static const String serviceRequestsScreen = '/service-requests';
   static const String complaintsScreen = '/complaints-screen';
   static const String noticesScreen = '/notices-screen';
   static const String schemesScreen = '/schemes-screen';
@@ -194,6 +196,17 @@ final GoRouter appRouter = GoRouter(
             ),
             child: child,
           );
+        },
+      ),
+    ),
+    GoRoute(
+      path: AppRoutes.serviceRequestsScreen,
+      pageBuilder: (context, state) => CustomTransitionPage(
+        key: state.pageKey,
+        child: const ServiceRequestsScreen(),
+        transitionDuration: const Duration(milliseconds: 280),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(opacity: animation, child: child);
         },
       ),
     ),

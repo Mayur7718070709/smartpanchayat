@@ -5,6 +5,7 @@ import 'auth/phone_auth_service.dart';
 import 'config/app_config.dart';
 import 'citizens/citizen_profile_repository.dart';
 import 'network/api_client.dart';
+import 'requests/service_request_repository.dart';
 import 'services/service_repository.dart';
 
 class AppRuntime {
@@ -15,6 +16,7 @@ class AppRuntime {
   static AuthContextRepository? _authContext;
   static CitizenProfileRepository? _citizenProfile;
   static ServiceRepository? _services;
+  static ServiceRequestRepository? _serviceRequests;
 
   static bool get usesRealApi => config.useRealApi;
 
@@ -30,6 +32,10 @@ class AppRuntime {
 
   static ServiceRepository get services =>
       _services ?? (throw StateError('Service repository is not initialized.'));
+
+  static ServiceRequestRepository get serviceRequests =>
+      _serviceRequests ??
+      (throw StateError('Service request repository is not initialized.'));
 
   static Future<void> initialize() async {
     final errors = config.validate();
@@ -49,5 +55,6 @@ class AppRuntime {
     _authContext = AuthContextRepository(apiClient);
     _citizenProfile = CitizenProfileRepository(apiClient);
     _services = ServiceRepository(apiClient);
+    _serviceRequests = ServiceRequestRepository(apiClient);
   }
 }
