@@ -2,6 +2,8 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../core/app_runtime.dart';
+import '../../core/network/api_exception.dart';
 import '../../data/mock_data.dart';
 import '../../models/notice_model.dart';
 import '../../theme/app_theme.dart';
@@ -18,6 +20,7 @@ class _NoticesScreenState extends State<NoticesScreen> {
   bool _isLoading = true;
   bool _isOffline = false;
   bool _hasError = false;
+  bool _featureUnavailable = false;
   List<NoticeModel> _allNotices = [];
   List<NoticeModel> _filtered = [];
   String _searchQuery = '';
@@ -54,8 +57,18 @@ class _NoticesScreenState extends State<NoticesScreen> {
       _isLoading = true;
       _hasError = false;
       _isOffline = false;
+      _featureUnavailable = false;
     });
     try {
+      if (AppRuntime.usesRealApi) {
+        await AppRuntime.notices.checkAvailability();
+        if (!mounted) return;
+        setState(() {
+          _featureUnavailable = true;
+          _isLoading = false;
+        });
+        return;
+      }
       final result = await Connectivity().checkConnectivity();
       if (result.contains(ConnectivityResult.none)) {
         setState(() {
@@ -70,7 +83,17 @@ class _NoticesScreenState extends State<NoticesScreen> {
         _applyFilters();
         _isLoading = false;
       });
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _featureUnavailable =
+            error.code == ApiErrorCode.databaseContractGap ||
+            error.code == ApiErrorCode.featureNotEnabled;
+        _hasError = !_featureUnavailable;
+        _isLoading = false;
+      });
     } catch (_) {
+      if (!mounted) return;
       setState(() {
         _hasError = true;
         _isLoading = false;
@@ -188,6 +211,15 @@ class _NoticesScreenState extends State<NoticesScreen> {
           ? DSOfflineState(onRetry: _loadNotices)
           : _hasError
           ? DSErrorState(onRetry: _loadNotices)
+          : _featureUnavailable
+          ? const DSEmptyState(
+              icon: Icons.campaign_outlined,
+              titleMr: 'सूचना उपलब्ध नाहीत',
+              titleEn: 'Notices unavailable',
+              subtitleMr: 'प्रकाशन नियमांच्या मंजुरीची प्रतीक्षा आहे.',
+              subtitleEn:
+                  'Production publishing and audience rules are awaiting approval.',
+            )
           : Column(
               children: [
                 _SearchBar(
