@@ -5,6 +5,7 @@ import 'auth/phone_auth_service.dart';
 import 'config/app_config.dart';
 import 'citizens/citizen_profile_repository.dart';
 import 'complaints/complaint_repository.dart';
+import 'feedback/feedback_repository.dart';
 import 'network/api_client.dart';
 import 'notices/notice_repository.dart';
 import 'notifications/notification_repository.dart';
@@ -21,6 +22,7 @@ class AppRuntime {
   static AuthContextRepository? _authContext;
   static CitizenProfileRepository? _citizenProfile;
   static ComplaintRepository? _complaints;
+  static FeedbackRepository? _feedback;
   static NoticeRepository? _notices;
   static NotificationRepository? _notifications;
   static PaymentRepository? _payments;
@@ -46,6 +48,10 @@ class AppRuntime {
   static ComplaintRepository get complaints =>
       _complaints ??
       (throw StateError('Complaint repository is not initialized.'));
+
+  static FeedbackRepository get feedback =>
+      _feedback ??
+      (throw StateError('Feedback repository is not initialized.'));
 
   static NoticeRepository get notices =>
       _notices ?? (throw StateError('Notice repository is not initialized.'));
@@ -82,6 +88,7 @@ class AppRuntime {
     _authContext = AuthContextRepository(apiClient);
     _citizenProfile = CitizenProfileRepository(apiClient);
     _complaints = ComplaintRepository(apiClient);
+    _feedback = FeedbackRepository(apiClient);
     _notices = NoticeRepository(apiClient);
     _notifications = NotificationRepository(apiClient);
     _payments = PaymentRepository(apiClient);
