@@ -3,14 +3,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../theme/app_theme.dart';
-import '../../../data/mock_data.dart';
 
 class OtpDialogWidget extends StatefulWidget {
   final String mobile;
+  final Future<void> Function(String otp) verifyOtp;
+  final Future<void> Function() resendOtp;
   final VoidCallback onVerified;
 
   const OtpDialogWidget({
     required this.mobile,
+    required this.verifyOtp,
+    required this.resendOtp,
     required this.onVerified,
     super.key,
   });
@@ -30,7 +33,6 @@ class _OtpDialogWidgetState extends State<OtpDialogWidget> {
   String? _errorMessage;
   Timer? _timer;
 
-  // TODO: Replace with real OTP verification service
   @override
   void initState() {
     super.initState();
@@ -72,17 +74,25 @@ class _OtpDialogWidgetState extends State<OtpDialogWidget> {
       _isVerifying = true;
       _errorMessage = null;
     });
-    // TODO: Replace with real OTP verification
-    await Future.delayed(const Duration(milliseconds: 700));
-    if (!mounted) return;
-    if (_enteredOtp == MockData.mockOtp) {
+    try {
+      await widget.verifyOtp(_enteredOtp);
+      if (!mounted) return;
       widget.onVerified();
-    } else {
+    } catch (error) {
+      if (!mounted) return;
       setState(() {
         _isVerifying = false;
-        _errorMessage =
-            'चुकीचा OTP / Invalid OTP — Demo साठी ${MockData.mockOtp} वापरा';
+        _errorMessage = error.toString();
       });
+    }
+  }
+
+  Future<void> _resend() async {
+    try {
+      await widget.resendOtp();
+      if (mounted) _startTimer();
+    } catch (error) {
+      if (mounted) setState(() => _errorMessage = error.toString());
     }
   }
 
@@ -207,7 +217,7 @@ class _OtpDialogWidgetState extends State<OtpDialogWidget> {
                 if (_secondsRemaining <= 0) ...[
                   const SizedBox(width: 4),
                   GestureDetector(
-                    onTap: _startTimer,
+                    onTap: _resend,
                     child: Text(
                       'पुन्हा पाठवा / Resend',
                       style: GoogleFonts.notoSans(

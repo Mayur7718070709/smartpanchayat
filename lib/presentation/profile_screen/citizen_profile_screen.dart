@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/app_runtime.dart';
 import '../../theme/app_theme.dart';
 import '../../data/mock_data.dart';
 import '../../routes/app_routes.dart';
@@ -124,8 +125,12 @@ class _CitizenProfileScreenState extends State<CitizenProfileScreen> {
             ),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(ctx);
+              if (AppRuntime.usesRealApi) {
+                await AppRuntime.auth.signOut();
+                if (!mounted) return;
+              }
               context.go(AppRoutes.loginScreen);
             },
             style: ElevatedButton.styleFrom(

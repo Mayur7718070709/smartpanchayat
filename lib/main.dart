@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sizer/sizer.dart';
 
-import '../core/app_export.dart';
-import '../widgets/custom_error_widget.dart';
+import 'core/app_export.dart';
+import 'core/app_runtime.dart';
+import 'widgets/custom_error_widget.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await AppRuntime.initialize();
 
   bool hasShownError = false;
 
@@ -26,12 +28,9 @@ void main() async {
   };
 
   // 🚨 CRITICAL: Device orientation lock - DO NOT REMOVE
-  Future.wait([
-    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]),
-  ]).then((value) {
-    GoRouter.optionURLReflectsImperativeAPIs = true;
-    runApp(MyApp());
-  });
+  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+  GoRouter.optionURLReflectsImperativeAPIs = true;
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {

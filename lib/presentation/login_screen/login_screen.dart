@@ -3,6 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../core/app_runtime.dart';
+import '../../core/auth/phone_auth_service.dart';
+import '../../core/network/api_exception.dart';
 import '../../data/mock_data.dart';
 import '../../routes/app_routes.dart';
 import '../../theme/app_theme.dart';
@@ -27,7 +30,6 @@ class _LoginScreenState extends State<LoginScreen>
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
 
-  // TODO: Replace with AuthService for production
   @override
   void initState() {
     super.initState();
@@ -59,11 +61,18 @@ class _LoginScreenState extends State<LoginScreen>
   Future<void> _sendOtp() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
-    // TODO: Replace with real OTP service (FastAPI backend)
-    await Future.delayed(const Duration(milliseconds: 800));
-    setState(() => _isLoading = false);
-    if (!mounted) return;
-    _showOtpDialog();
+    try {
+      if (AppRuntime.usesRealApi) {
+        await AppRuntime.auth.sendOtp(_mobileController.text);
+      } else {
+        await Future.delayed(const Duration(milliseconds: 800));
+      }
+      if (mounted) _showOtpDialog();
+    } on PhoneAuthFailure catch (error) {
+      _showError(error.message);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   void _showOtpDialog() {
@@ -72,11 +81,58 @@ class _LoginScreenState extends State<LoginScreen>
       barrierDismissible: false,
       builder: (_) => OtpDialogWidget(
         mobile: _mobileController.text,
+        verifyOtp: _verifyOtp,
+        resendOtp: _resendOtp,
         onVerified: () {
           Navigator.of(context).pop();
-          context.go(AppRoutes.profileSetupScreen);
+          context.go(
+            AppRuntime.usesRealApi
+                ? AppRoutes.homeScreen
+                : AppRoutes.profileSetupScreen,
+          );
         },
       ),
+    );
+  }
+
+  Future<void> _verifyOtp(String otp) async {
+    if (!AppRuntime.usesRealApi) {
+      await Future.delayed(const Duration(milliseconds: 700));
+      if (otp != MockData.mockOtp) {
+        throw PhoneAuthFailure(
+          'Invalid OTP — use ${MockData.mockOtp} for the demo.',
+        );
+      }
+      return;
+    }
+
+    await AppRuntime.auth.verifyOtp(_mobileController.text, otp);
+    try {
+      final authContext = await AppRuntime.authContext.fetch();
+      if (!authContext.isReadyCitizen) {
+        throw const PhoneAuthFailure(
+          'This account is not linked to an active citizen profile.',
+        );
+      }
+    } on ApiException catch (error) {
+      await AppRuntime.auth.signOut();
+      throw PhoneAuthFailure(error.message);
+    } on PhoneAuthFailure {
+      await AppRuntime.auth.signOut();
+      rethrow;
+    }
+  }
+
+  Future<void> _resendOtp() async {
+    if (AppRuntime.usesRealApi) {
+      await AppRuntime.auth.resendOtp(_mobileController.text);
+    }
+  }
+
+  void _showError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
     );
   }
 
@@ -124,8 +180,10 @@ class _LoginScreenState extends State<LoginScreen>
             isLoading: _isLoading,
             onSendOtp: _sendOtp,
           ),
-          const SizedBox(height: 24),
-          _buildMockCredentialBox(),
+          if (!AppRuntime.usesRealApi) ...[
+            const SizedBox(height: 24),
+            _buildMockCredentialBox(),
+          ],
           const SizedBox(height: 16),
           const LoginFooterWidget(),
         ],
@@ -162,8 +220,10 @@ class _LoginScreenState extends State<LoginScreen>
                   isLoading: _isLoading,
                   onSendOtp: _sendOtp,
                 ),
-                const SizedBox(height: 24),
-                _buildMockCredentialBox(),
+                if (!AppRuntime.usesRealApi) ...[
+                  const SizedBox(height: 24),
+                  _buildMockCredentialBox(),
+                ],
                 const SizedBox(height: 16),
                 const LoginFooterWidget(),
               ],

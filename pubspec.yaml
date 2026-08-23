@@ -15,6 +15,7 @@ dependencies:
   flutter_svg: ^2.0.9        # Required for SVG icon support
   google_fonts: ^6.1.0       # Required for typography (replaces local fonts)
   shared_preferences: ^2.2.2 # Required for local data storage
+  supabase_flutter: 2.17.2
   web: ^1.1.1
   
   # Feature dependencies - safe to modify
