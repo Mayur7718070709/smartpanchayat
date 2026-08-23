@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/notice_model.dart';
 import '../../theme/app_theme.dart';
@@ -649,7 +650,22 @@ class _AttachmentCard extends StatelessWidget {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
-                    onPressed: () {
+                    onPressed: () async {
+                      final url = notice.attachmentUrl;
+                      if (url == null ||
+                          !await launchUrl(
+                            Uri.parse(url),
+                            mode: LaunchMode.externalApplication,
+                          )) {
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Attachment could not be opened.'),
+                          ),
+                        );
+                        return;
+                      }
+                      if (!context.mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(

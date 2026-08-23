@@ -61,10 +61,11 @@ class _NoticesScreenState extends State<NoticesScreen> {
     });
     try {
       if (AppRuntime.usesRealApi) {
-        await AppRuntime.notices.checkAvailability();
+        final notices = await AppRuntime.notices.list();
         if (!mounted) return;
         setState(() {
-          _featureUnavailable = true;
+          _allNotices = notices;
+          _applyFilters();
           _isLoading = false;
         });
         return;
@@ -132,7 +133,9 @@ class _NoticesScreenState extends State<NoticesScreen> {
     });
   }
 
-  void _markAsRead(String id) {
+  Future<void> _markAsRead(String id) async {
+    if (AppRuntime.usesRealApi) await AppRuntime.notices.markRead(id);
+    if (!mounted) return;
     setState(() {
       _allNotices = _allNotices.map((n) {
         if (n.id == id && n.isUnread) {
@@ -251,7 +254,8 @@ class _NoticesScreenState extends State<NoticesScreen> {
                               return _NoticeCard(
                                 notice: notice,
                                 onTap: () async {
-                                  _markAsRead(notice.id);
+                                  await _markAsRead(notice.id);
+                                  if (!context.mounted) return;
                                   await Navigator.push(
                                     context,
                                     MaterialPageRoute(
