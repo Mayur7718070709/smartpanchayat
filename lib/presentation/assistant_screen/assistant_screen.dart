@@ -4,8 +4,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
 import '../../data/faq_data.dart';
+import '../../core/app_runtime.dart';
 import '../../models/faq_model.dart';
 import '../../theme/app_theme.dart';
+import './assistant_availability_screen.dart';
 
 /// Smart Panchayat Q&A Assistant — Phase 1 (FAQ/controlled database).
 /// Architecture is LLM/RAG-ready: swap [FaqData.findAnswer] with an API call
@@ -35,6 +37,7 @@ class _AssistantScreenState extends State<AssistantScreen>
   @override
   void initState() {
     super.initState();
+    if (AppRuntime.usesRealApi) return;
     _checkConnectivity();
     _addWelcomeMessage();
   }
@@ -157,6 +160,9 @@ class _AssistantScreenState extends State<AssistantScreen>
 
   @override
   Widget build(BuildContext context) {
+    if (AppRuntime.usesRealApi) {
+      return const AssistantAvailabilityScreen();
+    }
     return Scaffold(
       backgroundColor: AppTheme.backgroundLight,
       appBar: _buildAppBar(),

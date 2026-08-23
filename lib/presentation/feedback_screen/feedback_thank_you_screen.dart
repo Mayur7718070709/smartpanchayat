@@ -3,7 +3,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../theme/app_theme.dart';
+import '../../core/app_runtime.dart';
 import '../../routes/app_routes.dart';
+import './feedback_availability_screen.dart';
 
 class FeedbackThankYouScreen extends StatefulWidget {
   const FeedbackThankYouScreen({super.key});
@@ -41,6 +43,9 @@ class _FeedbackThankYouScreenState extends State<FeedbackThankYouScreen>
 
   @override
   Widget build(BuildContext context) {
+    if (AppRuntime.usesRealApi) {
+      return const FeedbackAvailabilityScreen();
+    }
     return Scaffold(
       backgroundColor: AppTheme.backgroundLight,
       body: SafeArea(

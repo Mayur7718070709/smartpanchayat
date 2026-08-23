@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:go_router/go_router.dart';
 import '../../theme/app_theme.dart';
 import '../../routes/app_routes.dart';
+import '../../core/preferences/language_preference.dart';
 
 class LanguageSelectionScreen extends StatefulWidget {
   const LanguageSelectionScreen({super.key});
@@ -51,8 +51,7 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen>
   Future<void> _saveAndContinue() async {
     if (_selectedLanguage == null) return;
     setState(() => _isSaving = true);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('selected_language', _selectedLanguage!);
+    await LanguagePreference.save(_selectedLanguage!);
     if (!mounted) return;
     setState(() => _isSaving = false);
     context.go(AppRoutes.loginScreen);

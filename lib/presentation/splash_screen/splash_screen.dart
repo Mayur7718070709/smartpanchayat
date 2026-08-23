@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../theme/app_theme.dart';
 import '../../routes/app_routes.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/app_runtime.dart';
+import '../../core/preferences/language_preference.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -71,8 +71,7 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Future<void> _navigateNext() async {
-    final prefs = await SharedPreferences.getInstance();
-    final hasLanguage = prefs.getString('selected_language') != null;
+    final hasLanguage = await LanguagePreference.load() != null;
     if (!mounted) return;
     if (!hasLanguage) {
       context.go(AppRoutes.languageSelectionScreen);

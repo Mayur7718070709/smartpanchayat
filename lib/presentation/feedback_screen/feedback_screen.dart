@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../theme/app_theme.dart';
+import '../../core/app_runtime.dart';
 import '../../widgets/star_rating_widget.dart';
 import './feedback_thank_you_screen.dart';
+import './feedback_availability_screen.dart';
 
 class FeedbackCategory {
   final String id;
@@ -109,6 +111,9 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (AppRuntime.usesRealApi) {
+      return const FeedbackAvailabilityScreen();
+    }
     return Scaffold(
       backgroundColor: AppTheme.backgroundLight,
       appBar: AppBar(

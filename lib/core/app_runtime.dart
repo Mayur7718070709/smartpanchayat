@@ -5,9 +5,13 @@ import 'auth/phone_auth_service.dart';
 import 'config/app_config.dart';
 import 'citizens/citizen_profile_repository.dart';
 import 'complaints/complaint_repository.dart';
+import 'feedback/feedback_repository.dart';
+import 'faq/faq_repository.dart';
 import 'network/api_client.dart';
 import 'notices/notice_repository.dart';
 import 'notifications/notification_repository.dart';
+import 'payments/payment_repository.dart';
+import 'panchayat/panchayat_content_repository.dart';
 import 'requests/service_request_repository.dart';
 import 'schemes/scheme_repository.dart';
 import 'services/service_repository.dart';
@@ -17,11 +21,15 @@ class AppRuntime {
 
   static final AppConfig config = AppConfig.fromEnvironment();
   static PhoneAuthService? _auth;
+  static FaqRepository? _faq;
   static AuthContextRepository? _authContext;
   static CitizenProfileRepository? _citizenProfile;
   static ComplaintRepository? _complaints;
+  static FeedbackRepository? _feedback;
   static NoticeRepository? _notices;
   static NotificationRepository? _notifications;
+  static PaymentRepository? _payments;
+  static PanchayatContentRepository? _panchayatContent;
   static SchemeRepository? _schemes;
   static ServiceRepository? _services;
   static ServiceRequestRepository? _serviceRequests;
@@ -34,6 +42,9 @@ class AppRuntime {
   static AuthContextRepository get authContext =>
       _authContext ?? (throw StateError('FastAPI client is not initialized.'));
 
+  static FaqRepository get faq =>
+      _faq ?? (throw StateError('FAQ repository is not initialized.'));
+
   static CitizenProfileRepository get citizenProfile =>
       _citizenProfile ??
       (throw StateError('Citizen profile repository is not initialized.'));
@@ -45,6 +56,10 @@ class AppRuntime {
       _complaints ??
       (throw StateError('Complaint repository is not initialized.'));
 
+  static FeedbackRepository get feedback =>
+      _feedback ??
+      (throw StateError('Feedback repository is not initialized.'));
+
   static NoticeRepository get notices =>
       _notices ?? (throw StateError('Notice repository is not initialized.'));
 
@@ -54,6 +69,13 @@ class AppRuntime {
 
   static SchemeRepository get schemes =>
       _schemes ?? (throw StateError('Scheme repository is not initialized.'));
+
+  static PaymentRepository get payments =>
+      _payments ?? (throw StateError('Payment repository is not initialized.'));
+
+  static PanchayatContentRepository get panchayatContent =>
+      _panchayatContent ??
+      (throw StateError('Panchayat content repository is not initialized.'));
 
   static ServiceRequestRepository get serviceRequests =>
       _serviceRequests ??
@@ -74,11 +96,15 @@ class AppRuntime {
       tokenProvider: () async => authService.accessToken,
     );
     _auth = authService;
+    _faq = FaqRepository(apiClient);
     _authContext = AuthContextRepository(apiClient);
     _citizenProfile = CitizenProfileRepository(apiClient);
     _complaints = ComplaintRepository(apiClient);
+    _feedback = FeedbackRepository(apiClient);
     _notices = NoticeRepository(apiClient);
     _notifications = NotificationRepository(apiClient);
+    _payments = PaymentRepository(apiClient);
+    _panchayatContent = PanchayatContentRepository(apiClient);
     _schemes = SchemeRepository(apiClient);
     _services = ServiceRepository(apiClient);
     _serviceRequests = ServiceRequestRepository(apiClient);
