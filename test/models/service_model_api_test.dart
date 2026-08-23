@@ -34,4 +34,46 @@ void main() {
     expect(service.contentStatus, 'PENDING_AUTHORITATIVE_CONTENT');
     expect(service.categoryLabel, 'Certificates');
   });
+
+  test('decodes an approved published dynamic form', () {
+    final form = PublishedServiceForm.fromApi({
+      'schema_version_id': '814a16d8-c425-4f2c-8138-6f7679208f93',
+      'version': 2,
+      'schema_definition': {
+        'fields': [
+          {
+            'id': 'applicant_name',
+            'label_mr': 'अर्जदाराचे नाव',
+            'label_en': 'Applicant name',
+            'type': 'text',
+            'required': true,
+          },
+        ],
+      },
+      'document_requirements': [
+        {'label': 'Identity proof'},
+      ],
+      'schema_checksum':
+          'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+    });
+
+    expect(form.version, 2);
+    expect(form.fields.single.id, 'applicant_name');
+    expect(form.fields.single.labelEn, 'Applicant name');
+    expect(form.requiredDocuments, ['Identity proof']);
+  });
+
+  test('rejects a published form with no fields', () {
+    expect(
+      () => PublishedServiceForm.fromApi({
+        'schema_version_id': '814a16d8-c425-4f2c-8138-6f7679208f93',
+        'version': 1,
+        'schema_definition': {'fields': <dynamic>[]},
+        'document_requirements': <dynamic>[],
+        'schema_checksum':
+            'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      }),
+      throwsFormatException,
+    );
+  });
 }

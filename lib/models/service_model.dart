@@ -21,14 +21,83 @@ class ServiceFormField {
   });
 
   factory ServiceFormField.fromMap(Map<String, dynamic> map) {
+    String textValue(List<String> keys, {String fallback = ''}) {
+      for (final key in keys) {
+        final value = map[key];
+        if (value != null && value.toString().trim().isNotEmpty) {
+          return value.toString();
+        }
+      }
+      return fallback;
+    }
+
     return ServiceFormField(
-      id: map['id'] as String,
-      labelMr: map['labelMr'] as String,
-      labelEn: map['labelEn'] as String,
-      type: map['type'] as String,
+      id: textValue(['id', 'key', 'name']),
+      labelMr: textValue(['labelMr', 'label_mr', 'name_mr']),
+      labelEn: textValue([
+        'labelEn',
+        'label_en',
+        'name_en',
+        'label',
+      ], fallback: textValue(['id', 'key', 'name'])),
+      type: textValue(['type', 'field_type'], fallback: 'text'),
       required: (map['required'] as bool?) ?? true,
-      options: List<String>.from(map['options'] ?? []),
-      hint: map['hint'] as String?,
+      options: (map['options'] as List<dynamic>? ?? const [])
+          .map(
+            (value) => value is Map
+                ? (value['label'] ?? value['value']).toString()
+                : value.toString(),
+          )
+          .toList(growable: false),
+      hint: (map['hint'] ?? map['placeholder'])?.toString(),
+    );
+  }
+}
+
+class PublishedServiceForm {
+  const PublishedServiceForm({
+    required this.schemaVersionId,
+    required this.version,
+    required this.fields,
+    required this.requiredDocuments,
+    required this.schemaChecksum,
+  });
+
+  final String schemaVersionId;
+  final int version;
+  final List<ServiceFormField> fields;
+  final List<String> requiredDocuments;
+  final String schemaChecksum;
+
+  factory PublishedServiceForm.fromApi(Map<String, dynamic> map) {
+    final definition = map['schema_definition'];
+    if (definition is! Map<String, dynamic>) {
+      throw const FormatException('Published form schema is invalid.');
+    }
+    final rawFields = definition['fields'];
+    if (rawFields is! List || rawFields.isEmpty) {
+      throw const FormatException('Published form contains no fields.');
+    }
+    final fields = rawFields
+        .whereType<Map>()
+        .map(
+          (field) => ServiceFormField.fromMap(
+            field.map((key, value) => MapEntry(key.toString(), value)),
+          ),
+        )
+        .where((field) => field.id.isNotEmpty && field.labelEn.isNotEmpty)
+        .toList(growable: false);
+    if (fields.length != rawFields.length) {
+      throw const FormatException('Published form contains invalid fields.');
+    }
+    return PublishedServiceForm(
+      schemaVersionId: map['schema_version_id'] as String,
+      version: map['version'] as int,
+      fields: fields,
+      requiredDocuments: ServiceModel.documentLabels(
+        map['document_requirements'],
+      ),
+      schemaChecksum: map['schema_checksum'] as String,
     );
   }
 }
@@ -71,23 +140,8 @@ class ServiceModel {
   });
 
   factory ServiceModel.fromApi(Map<String, dynamic> map) {
-    final documents = map['required_documents'];
     final feeValue = map['fee'];
-    final documentLabels = <String>[];
-    if (documents is List) {
-      for (final item in documents) {
-        if (item is String) {
-          documentLabels.add(item);
-        } else if (item is Map) {
-          final label = item['name'] ?? item['label'] ?? item['title'];
-          if (label != null) documentLabels.add(label.toString());
-        }
-      }
-    } else if (documents is Map) {
-      for (final entry in documents.entries) {
-        documentLabels.add(entry.value?.toString() ?? entry.key.toString());
-      }
-    }
+    final apiDocumentLabels = documentLabels(map['required_documents']);
 
     return ServiceModel(
       id: map['id'] as String,
@@ -104,11 +158,49 @@ class ServiceModel {
           : double.parse(feeValue.toString()),
       eligibilityMr: '',
       eligibilityEn: '',
-      requiredDocuments: documentLabels,
+      requiredDocuments: apiDocumentLabels,
       isOnline: map['is_online'] as bool? ?? false,
       contentStatus: map['content_status'] as String?,
     );
   }
+
+  static List<String> documentLabels(dynamic documents) {
+    final labels = <String>[];
+    if (documents is List) {
+      for (final item in documents) {
+        if (item is String) {
+          labels.add(item);
+        } else if (item is Map) {
+          final label = item['name'] ?? item['label'] ?? item['title'];
+          if (label != null) labels.add(label.toString());
+        }
+      }
+    } else if (documents is Map) {
+      for (final entry in documents.entries) {
+        labels.add(entry.value?.toString() ?? entry.key.toString());
+      }
+    }
+    return labels;
+  }
+
+  ServiceModel withPublishedForm(PublishedServiceForm form) => ServiceModel(
+    id: id,
+    nameMr: nameMr,
+    nameEn: nameEn,
+    description: description,
+    descriptionEn: descriptionEn,
+    iconName: iconName,
+    colorHex: colorHex,
+    category: category,
+    processingDays: processingDays,
+    fee: fee,
+    eligibilityMr: eligibilityMr,
+    eligibilityEn: eligibilityEn,
+    requiredDocuments: form.requiredDocuments,
+    formFields: form.fields,
+    isOnline: isOnline,
+    contentStatus: contentStatus,
+  );
 
   factory ServiceModel.fromMap(Map<String, dynamic> map) {
     return ServiceModel(

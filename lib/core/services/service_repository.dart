@@ -23,4 +23,11 @@ class ServiceRepository {
         '/api/v1/services/$serviceId',
         decode: (data) => ServiceModel.fromApi(data as Map<String, dynamic>),
       );
+
+  Future<PublishedServiceForm> fetchPublishedForm(String serviceId) =>
+      _apiClient.get<PublishedServiceForm>(
+        '/api/v1/services/$serviceId/form-schema',
+        decode: (data) =>
+            PublishedServiceForm.fromApi(data as Map<String, dynamic>),
+      );
 }
