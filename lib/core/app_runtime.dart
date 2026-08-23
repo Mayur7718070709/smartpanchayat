@@ -5,6 +5,7 @@ import 'auth/phone_auth_service.dart';
 import 'config/app_config.dart';
 import 'citizens/citizen_profile_repository.dart';
 import 'network/api_client.dart';
+import 'services/service_repository.dart';
 
 class AppRuntime {
   AppRuntime._();
@@ -13,6 +14,7 @@ class AppRuntime {
   static PhoneAuthService? _auth;
   static AuthContextRepository? _authContext;
   static CitizenProfileRepository? _citizenProfile;
+  static ServiceRepository? _services;
 
   static bool get usesRealApi => config.useRealApi;
 
@@ -25,6 +27,9 @@ class AppRuntime {
   static CitizenProfileRepository get citizenProfile =>
       _citizenProfile ??
       (throw StateError('Citizen profile repository is not initialized.'));
+
+  static ServiceRepository get services =>
+      _services ?? (throw StateError('Service repository is not initialized.'));
 
   static Future<void> initialize() async {
     final errors = config.validate();
@@ -43,5 +48,6 @@ class AppRuntime {
     _auth = authService;
     _authContext = AuthContextRepository(apiClient);
     _citizenProfile = CitizenProfileRepository(apiClient);
+    _services = ServiceRepository(apiClient);
   }
 }

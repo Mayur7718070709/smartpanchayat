@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../core/app_runtime.dart';
 import '../../data/mock_data.dart';
 import '../../models/service_model.dart';
 import '../../theme/app_theme.dart';
@@ -20,6 +21,8 @@ class _ServicesScreenState extends State<ServicesScreen> {
   List<ServiceModel> _filteredServices = [];
   String _selectedCategory = 'all';
   final _searchController = TextEditingController();
+  bool _isLoading = false;
+  Object? _loadError;
 
   // TODO: Replace with ServiceService for production
   static const List<_FilterChip> _filters = [
@@ -70,9 +73,30 @@ class _ServicesScreenState extends State<ServicesScreen> {
   @override
   void initState() {
     super.initState();
-    _allServices = MockData.serviceMaps.map(ServiceModel.fromMap).toList();
+    _allServices = AppRuntime.usesRealApi
+        ? []
+        : MockData.serviceMaps.map(ServiceModel.fromMap).toList();
     _filteredServices = _allServices;
     _searchController.addListener(_onSearchChanged);
+    if (AppRuntime.usesRealApi) _loadServices();
+  }
+
+  Future<void> _loadServices() async {
+    setState(() {
+      _isLoading = true;
+      _loadError = null;
+    });
+    try {
+      final services = await AppRuntime.services.fetchAll();
+      if (!mounted) return;
+      _allServices = services;
+      _applyFilters();
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _loadError = error);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -119,6 +143,28 @@ class _ServicesScreenState extends State<ServicesScreen> {
     final isTablet = size.width >= 600;
     final crossAxisCount = isTablet ? 3 : 2;
 
+    if (_isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    if (_loadError != null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Services')),
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Unable to load services.'),
+              const SizedBox(height: 12),
+              ElevatedButton(
+                onPressed: _loadServices,
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppTheme.backgroundLight,
       body: SafeArea(
@@ -140,8 +186,8 @@ class _ServicesScreenState extends State<ServicesScreen> {
                       onChanged: (_) => _onSearchChanged(),
                     ),
                     const SizedBox(height: 14),
-                    _buildFilterChips(),
-                    const SizedBox(height: 16),
+                    if (!AppRuntime.usesRealApi) _buildFilterChips(),
+                    if (!AppRuntime.usesRealApi) const SizedBox(height: 16),
                     _buildResultCount(),
                     const SizedBox(height: 12),
                   ],
