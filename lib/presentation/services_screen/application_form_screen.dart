@@ -8,8 +8,15 @@ import './application_review_screen.dart';
 
 class ApplicationFormScreen extends StatefulWidget {
   final ServiceModel service;
+  final int? schemaVersion;
+  final bool previewOnly;
 
-  const ApplicationFormScreen({required this.service, super.key});
+  const ApplicationFormScreen({
+    required this.service,
+    this.schemaVersion,
+    this.previewOnly = false,
+    super.key,
+  });
 
   @override
   State<ApplicationFormScreen> createState() => _ApplicationFormScreenState();
@@ -63,6 +70,10 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
           padding: const EdgeInsets.all(16),
           children: [
             _buildServiceHeader(),
+            if (widget.schemaVersion != null) ...[
+              const SizedBox(height: 12),
+              Text('Approved form version ${widget.schemaVersion}'),
+            ],
             const SizedBox(height: 16),
             _buildFormFields(),
             const SizedBox(height: 16),
@@ -464,6 +475,16 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
         const SizedBox(height: 6),
         GestureDetector(
           onTap: () {
+            if (widget.previewOnly) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    'Document upload will be enabled with application submission.',
+                  ),
+                ),
+              );
+              return;
+            }
             HapticFeedback.lightImpact();
             setState(() {
               _uploadedFiles[field.id] = isPhoto
@@ -592,6 +613,14 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
         height: 52,
         child: ElevatedButton(
           onPressed: () {
+            if (widget.previewOnly) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Application submission is not enabled yet.'),
+                ),
+              );
+              return;
+            }
             if (!_agreedToTerms) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(

@@ -878,7 +878,7 @@ class _CitizenProfileScreenState extends State<CitizenProfileScreen> {
             AppTheme.primary,
             'माझ्या सेवा विनंत्या',
             'My Service Requests',
-            () => context.go(AppRoutes.servicesScreen),
+            () => context.push(AppRoutes.serviceRequestsScreen),
           ),
           _buildDivider(),
           _buildSettingsItem(
