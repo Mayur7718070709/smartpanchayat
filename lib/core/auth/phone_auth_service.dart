@@ -47,6 +47,10 @@ class PhoneAuthService {
 
   String? get accessToken => _client.auth.currentSession?.accessToken;
 
+  String? get currentUserPhone => _client.auth.currentUser?.phone;
+
+  String? get currentUserEmail => _client.auth.currentUser?.email;
+
   bool get hasSession => _client.auth.currentSession != null;
 
   Future<void> signOut() => _client.auth.signOut(scope: SignOutScope.local);
