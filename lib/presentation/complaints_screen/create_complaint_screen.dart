@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../core/app_runtime.dart';
 import '../../models/complaint_model.dart';
 import '../../theme/app_theme.dart';
 import './complaint_submitted_screen.dart';
@@ -30,6 +31,14 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
   }
 
   Future<void> _submitComplaint() async {
+    if (AppRuntime.usesRealApi) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Production complaint submission is not enabled yet.'),
+        ),
+      );
+      return;
+    }
     if (!_formKey.currentState!.validate()) return;
     if (_selectedCategory == null) {
       ScaffoldMessenger.of(context).showSnackBar(

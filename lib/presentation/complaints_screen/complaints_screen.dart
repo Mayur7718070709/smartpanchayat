@@ -2,6 +2,8 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../core/app_runtime.dart';
+import '../../core/network/api_exception.dart';
 import '../../data/mock_data.dart';
 import '../../models/complaint_model.dart';
 import '../../theme/app_theme.dart';
@@ -20,6 +22,7 @@ class _ComplaintsScreenState extends State<ComplaintsScreen> {
   bool _isLoading = true;
   bool _isOffline = false;
   bool _hasError = false;
+  bool _featureUnavailable = false;
   List<ComplaintModel> _complaints = [];
 
   @override
@@ -33,9 +36,19 @@ class _ComplaintsScreenState extends State<ComplaintsScreen> {
       _isLoading = true;
       _hasError = false;
       _isOffline = false;
+      _featureUnavailable = false;
     });
 
     try {
+      if (AppRuntime.usesRealApi) {
+        await AppRuntime.complaints.checkAvailability();
+        if (!mounted) return;
+        setState(() {
+          _featureUnavailable = true;
+          _isLoading = false;
+        });
+        return;
+      }
       final result = await Connectivity().checkConnectivity();
       if (result.contains(ConnectivityResult.none)) {
         setState(() {
@@ -50,7 +63,17 @@ class _ComplaintsScreenState extends State<ComplaintsScreen> {
         _complaints = MockData.mockComplaints;
         _isLoading = false;
       });
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _featureUnavailable =
+            error.code == ApiErrorCode.databaseContractGap ||
+            error.code == ApiErrorCode.featureNotEnabled;
+        _hasError = !_featureUnavailable;
+        _isLoading = false;
+      });
     } catch (_) {
+      if (!mounted) return;
       setState(() {
         _hasError = true;
         _isLoading = false;
@@ -93,25 +116,29 @@ class _ComplaintsScreenState extends State<ComplaintsScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () async {
-          final result = await Navigator.push<bool>(
-            context,
-            MaterialPageRoute(builder: (_) => const CreateComplaintScreen()),
-          );
-          if (result == true) _loadComplaints();
-        },
-        backgroundColor: AppTheme.primary,
-        foregroundColor: AppTheme.onPrimary,
-        icon: const Icon(Icons.add_rounded),
-        label: Text(
-          'नवीन तक्रार',
-          style: GoogleFonts.notoSans(
-            fontWeight: FontWeight.w600,
-            fontSize: 14,
-          ),
-        ),
-      ),
+      floatingActionButton: AppRuntime.usesRealApi
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: () async {
+                final result = await Navigator.push<bool>(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const CreateComplaintScreen(),
+                  ),
+                );
+                if (result == true) _loadComplaints();
+              },
+              backgroundColor: AppTheme.primary,
+              foregroundColor: AppTheme.onPrimary,
+              icon: const Icon(Icons.add_rounded),
+              label: Text(
+                'नवीन तक्रार',
+                style: GoogleFonts.notoSans(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
+              ),
+            ),
       body: _buildBody(),
     );
   }
@@ -125,6 +152,14 @@ class _ComplaintsScreenState extends State<ComplaintsScreen> {
 
     if (_isOffline) {
       return _buildOfflineState();
+    }
+
+    if (_featureUnavailable) {
+      return const DSErrorState(
+        title: 'Complaints unavailable',
+        message:
+            'The production complaint workflow is awaiting approved Panchayat lifecycle and security rules.',
+      );
     }
 
     if (_hasError) {

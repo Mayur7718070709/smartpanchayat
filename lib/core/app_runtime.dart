@@ -4,6 +4,7 @@ import 'auth/auth_context_repository.dart';
 import 'auth/phone_auth_service.dart';
 import 'config/app_config.dart';
 import 'citizens/citizen_profile_repository.dart';
+import 'complaints/complaint_repository.dart';
 import 'network/api_client.dart';
 import 'requests/service_request_repository.dart';
 import 'services/service_repository.dart';
@@ -15,6 +16,7 @@ class AppRuntime {
   static PhoneAuthService? _auth;
   static AuthContextRepository? _authContext;
   static CitizenProfileRepository? _citizenProfile;
+  static ComplaintRepository? _complaints;
   static ServiceRepository? _services;
   static ServiceRequestRepository? _serviceRequests;
 
@@ -32,6 +34,10 @@ class AppRuntime {
 
   static ServiceRepository get services =>
       _services ?? (throw StateError('Service repository is not initialized.'));
+
+  static ComplaintRepository get complaints =>
+      _complaints ??
+      (throw StateError('Complaint repository is not initialized.'));
 
   static ServiceRequestRepository get serviceRequests =>
       _serviceRequests ??
@@ -54,6 +60,7 @@ class AppRuntime {
     _auth = authService;
     _authContext = AuthContextRepository(apiClient);
     _citizenProfile = CitizenProfileRepository(apiClient);
+    _complaints = ComplaintRepository(apiClient);
     _services = ServiceRepository(apiClient);
     _serviceRequests = ServiceRequestRepository(apiClient);
   }
