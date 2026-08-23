@@ -19,6 +19,7 @@ import './widgets/quick_services_widget.dart';
 import './widgets/schemes_section_widget.dart';
 import './widgets/ask_smart_panchayat_widget.dart';
 import './widgets/important_contacts_widget.dart';
+import './widgets/gated_panchayat_content_widget.dart';
 
 enum HomeLoadState { loading, loaded, error, offline, empty }
 
@@ -44,8 +45,23 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() => _loadState = HomeLoadState.loading);
     // Check connectivity
     final result = await Connectivity().checkConnectivity();
-    if (result == ConnectivityResult.none) {
+    if (result.contains(ConnectivityResult.none)) {
       setState(() => _loadState = HomeLoadState.offline);
+      return;
+    }
+    if (AppRuntime.usesRealApi) {
+      try {
+        final profile = await AppRuntime.citizenProfile.fetch();
+        if (!mounted) return;
+        _citizen['name'] = profile.fullName;
+        // The live API exposes tenant identity but no approved Panchayat
+        // display-metadata contract. Do not reuse the demo Panchayat name.
+        _citizen['panchayatName'] = 'Your Gram Panchayat';
+        _notices = [];
+        setState(() => _loadState = HomeLoadState.loaded);
+      } catch (_) {
+        if (mounted) setState(() => _loadState = HomeLoadState.error);
+      }
       return;
     }
     // Simulate data load
@@ -405,8 +421,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 'Important Contacts',
                 null,
               ),
-              const SizedBox(height: 12),
-              const ImportantContactsWidget(),
+              if (!AppRuntime.usesRealApi) const SizedBox(height: 12),
+              if (!AppRuntime.usesRealApi) const ImportantContactsWidget(),
+              if (AppRuntime.usesRealApi)
+                const GatedPanchayatContentWidget(
+                  type: PanchayatContentType.contacts,
+                ),
               const SizedBox(height: 20),
 
               // ── Upcoming Events ──
@@ -416,8 +436,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 'Upcoming Events',
                 null,
               ),
-              const SizedBox(height: 12),
-              UpcomingEventsWidget(events: MockData.upcomingEvents),
+              if (!AppRuntime.usesRealApi) const SizedBox(height: 12),
+              if (!AppRuntime.usesRealApi)
+                UpcomingEventsWidget(events: MockData.upcomingEvents),
+              if (AppRuntime.usesRealApi)
+                const GatedPanchayatContentWidget(
+                  type: PanchayatContentType.events,
+                ),
               const SizedBox(height: 32),
             ]),
           ),

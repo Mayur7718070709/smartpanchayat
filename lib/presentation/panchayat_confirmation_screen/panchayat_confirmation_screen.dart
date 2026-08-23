@@ -3,6 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import '../../theme/app_theme.dart';
 import '../../routes/app_routes.dart';
+import '../../core/app_runtime.dart';
+import '../profile_setup_screen/production_onboarding_unavailable_screen.dart';
 
 class PanchayatConfirmationScreen extends StatefulWidget {
   const PanchayatConfirmationScreen({super.key});
@@ -68,6 +70,7 @@ class _PanchayatConfirmationScreenState
   }
 
   Future<void> _confirmAndContinue() async {
+    if (AppRuntime.usesRealApi) return;
     setState(() => _isLoading = true);
     await Future.delayed(const Duration(milliseconds: 700));
     if (!mounted) return;
@@ -77,6 +80,9 @@ class _PanchayatConfirmationScreenState
 
   @override
   Widget build(BuildContext context) {
+    if (AppRuntime.usesRealApi) {
+      return const ProductionOnboardingUnavailableScreen();
+    }
     return Scaffold(
       backgroundColor: AppTheme.backgroundLight,
       body: SafeArea(

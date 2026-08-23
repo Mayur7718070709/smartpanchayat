@@ -3,6 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import '../../theme/app_theme.dart';
 import '../../routes/app_routes.dart';
+import '../../core/app_runtime.dart';
+import './production_onboarding_unavailable_screen.dart';
 
 class ProfileSetupScreen extends StatefulWidget {
   const ProfileSetupScreen({super.key});
@@ -55,6 +57,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
   }
 
   Future<void> _continue() async {
+    if (AppRuntime.usesRealApi) return;
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
     // Mock save — replace with real persistence
@@ -65,6 +68,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
   }
 
   void _pickPhoto() {
+    if (AppRuntime.usesRealApi) return;
     // Mock photo selection — shows a snackbar for demo
     setState(() => _hasProfilePhoto = !_hasProfilePhoto);
     ScaffoldMessenger.of(context).showSnackBar(
@@ -82,6 +86,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
 
   @override
   Widget build(BuildContext context) {
+    if (AppRuntime.usesRealApi) {
+      return const ProductionOnboardingUnavailableScreen();
+    }
     return Scaffold(
       backgroundColor: AppTheme.backgroundLight,
       body: SafeArea(
