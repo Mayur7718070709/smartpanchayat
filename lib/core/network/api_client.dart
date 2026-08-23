@@ -62,6 +62,7 @@ class ApiClient {
   Future<T> post<T>(
     String path, {
     Object? data,
+    Map<String, dynamic>? headers,
     CancelToken? cancelToken,
     T Function(dynamic data)? decode,
   }) async {
@@ -70,13 +71,25 @@ class ApiClient {
         path,
         data: data,
         cancelToken: cancelToken,
-        options: Options(extra: const {'requiresAuth': true}),
+        options: Options(extra: const {'requiresAuth': true}, headers: headers),
       );
       return decode == null ? response.data as T : decode(response.data);
     } on DioException catch (error) {
       throw ApiException.fromDio(error);
     }
   }
+
+  Future<T> postBytes<T>(
+    String path,
+    List<int> data, {
+    required String contentType,
+    T Function(dynamic data)? decode,
+  }) => post<T>(
+    path,
+    data: data,
+    headers: {'Content-Type': contentType},
+    decode: decode,
+  );
 
   bool _isRetryableRead(DioException error) {
     if (error.type == DioExceptionType.connectionError ||

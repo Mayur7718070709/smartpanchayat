@@ -9,12 +9,14 @@ import '../../routes/app_routes.dart';
 import './track_complaint_screen.dart';
 
 class ComplaintSubmittedScreen extends StatefulWidget {
+  final String? recordId;
   final String complaintId;
   final ComplaintCategory category;
   final String description;
   final String? location;
 
   const ComplaintSubmittedScreen({
+    this.recordId,
     required this.complaintId,
     required this.category,
     required this.description,
@@ -441,7 +443,7 @@ class _ComplaintSubmittedScreenState extends State<ComplaintSubmittedScreen>
 
   Widget _buildBottomActions(BuildContext context) {
     final newComplaint = ComplaintModel(
-      id: 'new_${widget.complaintId}',
+      id: widget.recordId ?? 'new_${widget.complaintId}',
       complaintId: widget.complaintId,
       category: widget.category,
       description: widget.description,
