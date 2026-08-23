@@ -4,6 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../models/payment_model.dart';
 import '../../theme/app_theme.dart';
 import '../../data/mock_payment_data.dart';
+import '../../core/app_runtime.dart';
+import '../../core/network/api_exception.dart';
 import './payment_success_screen.dart';
 
 class PaymentHistoryScreen extends StatefulWidget {
@@ -17,6 +19,8 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
   bool _isLoading = true;
   List<PaymentTransaction> _transactions = [];
   PaymentStatus? _selectedFilter;
+  bool _featureUnavailable = false;
+  bool _hasError = false;
 
   @override
   void initState() {
@@ -25,10 +29,35 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
   }
 
   Future<void> _loadTransactions() async {
-    await Future.delayed(const Duration(milliseconds: 600));
-    if (mounted) {
+    try {
+      if (AppRuntime.usesRealApi) {
+        await AppRuntime.payments.checkAvailability();
+        if (!mounted) return;
+        setState(() {
+          _featureUnavailable = true;
+          _isLoading = false;
+        });
+        return;
+      }
+      await Future.delayed(const Duration(milliseconds: 600));
+      if (!mounted) return;
       setState(() {
         _transactions = MockPaymentData.transactions;
+        _isLoading = false;
+      });
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _featureUnavailable =
+            error.code == ApiErrorCode.databaseContractGap ||
+            error.code == ApiErrorCode.featureNotEnabled;
+        _hasError = !_featureUnavailable;
+        _isLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _hasError = true;
         _isLoading = false;
       });
     }
@@ -93,20 +122,51 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
           ],
         ),
       ),
-      body: Column(
+      body: _featureUnavailable
+          ? _buildUnavailableState()
+          : _hasError
+          ? _buildErrorState()
+          : Column(
+              children: [
+                _buildFilterChips(),
+                Expanded(
+                  child: _isLoading
+                      ? _buildLoadingState()
+                      : _filteredTransactions.isEmpty
+                      ? _buildEmptyState()
+                      : _buildTransactionList(),
+                ),
+              ],
+            ),
+    );
+  }
+
+  Widget _buildUnavailableState() => const Center(
+    child: Padding(
+      padding: EdgeInsets.all(32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          _buildFilterChips(),
-          Expanded(
-            child: _isLoading
-                ? _buildLoadingState()
-                : _filteredTransactions.isEmpty
-                ? _buildEmptyState()
-                : _buildTransactionList(),
+          Icon(Icons.payments_outlined, size: 64, color: AppTheme.textTertiary),
+          SizedBox(height: 16),
+          Text('Payments are not available yet.', textAlign: TextAlign.center),
+          SizedBox(height: 8),
+          Text(
+            'No transaction or receipt data has been loaded.',
+            textAlign: TextAlign.center,
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+
+  Widget _buildErrorState() => Center(
+    child: TextButton.icon(
+      onPressed: _loadTransactions,
+      icon: const Icon(Icons.refresh_rounded),
+      label: const Text('Could not check payments. Retry'),
+    ),
+  );
 
   Widget _buildFilterChips() {
     final filters = [

@@ -8,6 +8,7 @@ import 'complaints/complaint_repository.dart';
 import 'network/api_client.dart';
 import 'notices/notice_repository.dart';
 import 'notifications/notification_repository.dart';
+import 'payments/payment_repository.dart';
 import 'requests/service_request_repository.dart';
 import 'schemes/scheme_repository.dart';
 import 'services/service_repository.dart';
@@ -22,6 +23,7 @@ class AppRuntime {
   static ComplaintRepository? _complaints;
   static NoticeRepository? _notices;
   static NotificationRepository? _notifications;
+  static PaymentRepository? _payments;
   static SchemeRepository? _schemes;
   static ServiceRepository? _services;
   static ServiceRequestRepository? _serviceRequests;
@@ -55,6 +57,9 @@ class AppRuntime {
   static SchemeRepository get schemes =>
       _schemes ?? (throw StateError('Scheme repository is not initialized.'));
 
+  static PaymentRepository get payments =>
+      _payments ?? (throw StateError('Payment repository is not initialized.'));
+
   static ServiceRequestRepository get serviceRequests =>
       _serviceRequests ??
       (throw StateError('Service request repository is not initialized.'));
@@ -79,6 +84,7 @@ class AppRuntime {
     _complaints = ComplaintRepository(apiClient);
     _notices = NoticeRepository(apiClient);
     _notifications = NotificationRepository(apiClient);
+    _payments = PaymentRepository(apiClient);
     _schemes = SchemeRepository(apiClient);
     _services = ServiceRepository(apiClient);
     _serviceRequests = ServiceRequestRepository(apiClient);

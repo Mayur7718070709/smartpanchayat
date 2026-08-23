@@ -3,9 +3,11 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../models/payment_model.dart';
+import '../../core/app_runtime.dart';
 import '../../theme/app_theme.dart';
 import '../../data/mock_payment_data.dart';
 import './payment_processing_screen.dart';
+import './payment_availability_screen.dart';
 
 class PaymentSummaryScreen extends StatelessWidget {
   final PaymentSummaryData? summaryData;
@@ -14,6 +16,9 @@ class PaymentSummaryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (AppRuntime.usesRealApi) {
+      return const PaymentAvailabilityScreen();
+    }
     final data = summaryData ?? MockPaymentData.sampleSummary;
 
     return Scaffold(

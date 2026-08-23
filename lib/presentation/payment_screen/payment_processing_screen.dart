@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../models/payment_model.dart';
+import '../../core/app_runtime.dart';
 import '../../theme/app_theme.dart';
 import './payment_success_screen.dart';
 import './payment_failed_screen.dart';
@@ -47,7 +48,7 @@ class _PaymentProcessingScreenState extends State<PaymentProcessingScreen>
     );
     _rotateAnim = Tween<double>(begin: 0, end: 1).animate(_rotateController);
 
-    _simulateProcessing();
+    if (!AppRuntime.usesRealApi) _simulateProcessing();
   }
 
   void _simulateProcessing() async {
@@ -95,6 +96,27 @@ class _PaymentProcessingScreenState extends State<PaymentProcessingScreen>
 
   @override
   Widget build(BuildContext context) {
+    if (AppRuntime.usesRealApi) {
+      return Scaffold(
+        backgroundColor: AppTheme.backgroundLight,
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_rounded),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+          title: const Text('Payment'),
+        ),
+        body: const Center(
+          child: Padding(
+            padding: EdgeInsets.all(32),
+            child: Text(
+              'Payments are not available yet. No transaction was created.',
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      );
+    }
     return PopScope(
       canPop: false,
       child: Scaffold(

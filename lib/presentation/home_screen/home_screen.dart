@@ -340,6 +340,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       amount: _citizen['pendingDuesAmount'] as double,
                       pendingComplaints: _citizen['pendingComplaints'] as int,
                       activeApplications: _citizen['activeApplications'] as int,
+                      showDues: !AppRuntime.usesRealApi,
                     ),
                   ],
                 ),

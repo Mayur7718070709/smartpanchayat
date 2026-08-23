@@ -6,11 +6,13 @@ class PendingDuesWidget extends StatelessWidget {
   final double amount;
   final int pendingComplaints;
   final int activeApplications;
+  final bool showDues;
 
   const PendingDuesWidget({
     required this.amount,
     required this.pendingComplaints,
     required this.activeApplications,
+    this.showDues = true,
     super.key,
   });
 
@@ -32,18 +34,20 @@ class PendingDuesWidget extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Expanded(
-            child: _StatChip(
-              icon: Icons.payments_rounded,
-              iconColor: AppTheme.accent,
-              bgColor: AppTheme.accentContainer,
-              value: '₹${amount.toStringAsFixed(0)}',
-              labelMr: 'थकबाकी',
-              labelEn: 'Dues',
-              isAlert: amount > 0,
+          if (showDues) ...[
+            Expanded(
+              child: _StatChip(
+                icon: Icons.payments_rounded,
+                iconColor: AppTheme.accent,
+                bgColor: AppTheme.accentContainer,
+                value: '₹${amount.toStringAsFixed(0)}',
+                labelMr: 'थकबाकी',
+                labelEn: 'Dues',
+                isAlert: amount > 0,
+              ),
             ),
-          ),
-          _buildDivider(),
+            _buildDivider(),
+          ],
           Expanded(
             child: _StatChip(
               icon: Icons.report_problem_rounded,
