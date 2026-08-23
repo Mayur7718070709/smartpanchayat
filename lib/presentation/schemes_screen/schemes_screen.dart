@@ -2,6 +2,8 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../core/app_runtime.dart';
+import '../../core/network/api_exception.dart';
 import '../../data/mock_data.dart';
 import '../../models/scheme_model.dart';
 import '../../theme/app_theme.dart';
@@ -18,6 +20,7 @@ class _SchemesScreenState extends State<SchemesScreen> {
   bool _isLoading = true;
   bool _isOffline = false;
   bool _hasError = false;
+  bool _featureUnavailable = false;
   List<SchemeModel> _allSchemes = [];
   List<SchemeModel> _filtered = [];
   String _searchQuery = '';
@@ -56,8 +59,18 @@ class _SchemesScreenState extends State<SchemesScreen> {
       _isLoading = true;
       _hasError = false;
       _isOffline = false;
+      _featureUnavailable = false;
     });
     try {
+      if (AppRuntime.usesRealApi) {
+        await AppRuntime.schemes.checkAvailability();
+        if (!mounted) return;
+        setState(() {
+          _featureUnavailable = true;
+          _isLoading = false;
+        });
+        return;
+      }
       final result = await Connectivity().checkConnectivity();
       if (result.contains(ConnectivityResult.none)) {
         setState(() {
@@ -72,7 +85,17 @@ class _SchemesScreenState extends State<SchemesScreen> {
         _applyFilters();
         _isLoading = false;
       });
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _featureUnavailable =
+            error.code == ApiErrorCode.databaseContractGap ||
+            error.code == ApiErrorCode.featureNotEnabled;
+        _hasError = !_featureUnavailable;
+        _isLoading = false;
+      });
     } catch (_) {
+      if (!mounted) return;
       setState(() {
         _hasError = true;
         _isLoading = false;
@@ -196,6 +219,7 @@ class _SchemesScreenState extends State<SchemesScreen> {
     if (_isLoading) return _buildLoadingState();
     if (_isOffline) return _buildOfflineState();
     if (_hasError) return _buildErrorState();
+    if (_featureUnavailable) return _buildUnavailableState();
 
     return Column(
       children: [
@@ -279,6 +303,36 @@ class _SchemesScreenState extends State<SchemesScreen> {
             borderRadius: BorderRadius.circular(12.0),
             borderSide: BorderSide(color: AppTheme.primary, width: 1.5),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUnavailableState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.account_balance_outlined,
+              size: 64,
+              color: AppTheme.textTertiary,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Government schemes unavailable',
+              style: AppTheme.headingSmall,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Authoritative scheme content, eligibility, deadlines, and source verification are awaiting approval.',
+              style: AppTheme.bodySmall,
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
       ),
     );

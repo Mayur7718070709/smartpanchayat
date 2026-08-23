@@ -369,15 +369,16 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 20),
 
               // ── Government Schemes ──
-              _buildSectionHeader(
-                context,
-                'सरकारी योजना',
-                'Govt. Schemes',
-                null,
-              ),
-              const SizedBox(height: 12),
-              const SchemesSectionWidget(),
-              const SizedBox(height: 20),
+              if (!AppRuntime.usesRealApi)
+                _buildSectionHeader(
+                  context,
+                  'सरकारी योजना',
+                  'Govt. Schemes',
+                  null,
+                ),
+              if (!AppRuntime.usesRealApi) const SizedBox(height: 12),
+              if (!AppRuntime.usesRealApi) const SchemesSectionWidget(),
+              if (!AppRuntime.usesRealApi) const SizedBox(height: 20),
 
               // ── Ask Smart Panchayat ──
               const AskSmartPanchayatWidget(),
