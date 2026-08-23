@@ -41,10 +41,10 @@ class _ComplaintsScreenState extends State<ComplaintsScreen> {
 
     try {
       if (AppRuntime.usesRealApi) {
-        await AppRuntime.complaints.checkAvailability();
+        final complaints = await AppRuntime.complaints.list();
         if (!mounted) return;
         setState(() {
-          _featureUnavailable = true;
+          _complaints = complaints;
           _isLoading = false;
         });
         return;
@@ -116,29 +116,25 @@ class _ComplaintsScreenState extends State<ComplaintsScreen> {
           ),
         ],
       ),
-      floatingActionButton: AppRuntime.usesRealApi
-          ? null
-          : FloatingActionButton.extended(
-              onPressed: () async {
-                final result = await Navigator.push<bool>(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const CreateComplaintScreen(),
-                  ),
-                );
-                if (result == true) _loadComplaints();
-              },
-              backgroundColor: AppTheme.primary,
-              foregroundColor: AppTheme.onPrimary,
-              icon: const Icon(Icons.add_rounded),
-              label: Text(
-                'नवीन तक्रार',
-                style: GoogleFonts.notoSans(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                ),
-              ),
-            ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () async {
+          final result = await Navigator.push<bool>(
+            context,
+            MaterialPageRoute(builder: (_) => const CreateComplaintScreen()),
+          );
+          if (result == true) _loadComplaints();
+        },
+        backgroundColor: AppTheme.primary,
+        foregroundColor: AppTheme.onPrimary,
+        icon: const Icon(Icons.add_rounded),
+        label: Text(
+          'नवीन तक्रार',
+          style: GoogleFonts.notoSans(
+            fontWeight: FontWeight.w600,
+            fontSize: 14,
+          ),
+        ),
+      ),
       body: _buildBody(),
     );
   }

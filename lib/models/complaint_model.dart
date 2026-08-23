@@ -14,6 +14,22 @@ enum ComplaintCategory {
 enum ComplaintStatus { submitted, assigned, inProgress, resolved, closed }
 
 extension ComplaintCategoryExt on ComplaintCategory {
+  String get apiValue => switch (this) {
+    ComplaintCategory.water => 'WATER',
+    ComplaintCategory.roads => 'ROADS',
+    ComplaintCategory.streetLights => 'STREET_LIGHTS',
+    ComplaintCategory.garbage => 'GARBAGE',
+    ComplaintCategory.drainage => 'DRAINAGE',
+    ComplaintCategory.publicFacilities => 'PUBLIC_FACILITIES',
+    ComplaintCategory.documents => 'DOCUMENTS',
+    ComplaintCategory.other => 'OTHER',
+  };
+
+  static ComplaintCategory fromApi(String value) =>
+      ComplaintCategory.values.firstWhere(
+        (item) => item.apiValue == value,
+        orElse: () => ComplaintCategory.other,
+      );
   String get labelMr {
     switch (this) {
       case ComplaintCategory.water:
@@ -100,6 +116,19 @@ extension ComplaintCategoryExt on ComplaintCategory {
 }
 
 extension ComplaintStatusExt on ComplaintStatus {
+  String get apiValue => switch (this) {
+    ComplaintStatus.submitted => 'SUBMITTED',
+    ComplaintStatus.assigned => 'ASSIGNED',
+    ComplaintStatus.inProgress => 'IN_PROGRESS',
+    ComplaintStatus.resolved => 'RESOLVED',
+    ComplaintStatus.closed => 'CLOSED',
+  };
+
+  static ComplaintStatus fromApi(String value) =>
+      ComplaintStatus.values.firstWhere(
+        (item) => item.apiValue == value,
+        orElse: () => ComplaintStatus.submitted,
+      );
   String get labelMr {
     switch (this) {
       case ComplaintStatus.submitted:
@@ -203,4 +232,22 @@ class ComplaintModel {
     this.additionalInfo,
     this.canReopen = false,
   });
+
+  factory ComplaintModel.fromJson(
+    Map<String, dynamic> json, {
+    List<ComplaintTimelineEvent> timeline = const [],
+  }) {
+    return ComplaintModel(
+      id: json['id'] as String,
+      complaintId: json['complaint_number'] as String,
+      category: ComplaintCategoryExt.fromApi(json['category'] as String),
+      description: json['description'] as String,
+      location: json['location'] as String?,
+      currentStatus: ComplaintStatusExt.fromApi(json['status'] as String),
+      submittedAt: DateTime.parse(json['submitted_at'] as String),
+      timeline: timeline,
+      rating: json['rating'] as int?,
+      canReopen: json['can_reopen'] as bool? ?? false,
+    );
+  }
 }

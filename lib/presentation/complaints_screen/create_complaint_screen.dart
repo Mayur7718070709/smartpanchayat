@@ -1,5 +1,8 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../core/app_runtime.dart';
 import '../../models/complaint_model.dart';
@@ -19,6 +22,7 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
   final _descriptionController = TextEditingController();
   final _locationController = TextEditingController();
   bool _hasPhoto = false;
+  XFile? _photo;
   bool _isSubmitting = false;
 
   static const List<ComplaintCategory> _categories = ComplaintCategory.values;
@@ -31,14 +35,6 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
   }
 
   Future<void> _submitComplaint() async {
-    if (AppRuntime.usesRealApi) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Production complaint submission is not enabled yet.'),
-        ),
-      );
-      return;
-    }
     if (!_formKey.currentState!.validate()) return;
     if (_selectedCategory == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -54,17 +50,63 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
     }
 
     setState(() => _isSubmitting = true);
-    await Future.delayed(const Duration(milliseconds: 1200));
+    ComplaintModel? created;
+    try {
+      if (AppRuntime.usesRealApi) {
+        created = await AppRuntime.complaints.create(
+          category: _selectedCategory!,
+          description: _descriptionController.text.trim(),
+          location: _locationController.text.trim().isEmpty
+              ? null
+              : _locationController.text.trim(),
+          idempotencyKey: _newUuid(),
+        );
+      } else {
+        await Future.delayed(const Duration(milliseconds: 1200));
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isSubmitting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Complaint could not be submitted. Please try again.'),
+          backgroundColor: AppTheme.error,
+        ),
+      );
+      return;
+    }
+
+    if (created != null && _photo != null) {
+      try {
+        final bytes = await _photo!.readAsBytes();
+        final mime = _photo!.name.toLowerCase().endsWith('.png')
+            ? 'image/png'
+            : 'image/jpeg';
+        await AppRuntime.complaints.uploadAttachment(created.id, bytes, mime);
+      } catch (_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Complaint saved, but the photo could not be uploaded.',
+            ),
+            backgroundColor: AppTheme.warning,
+          ),
+        );
+      }
+    }
 
     if (!mounted) return;
 
     final complaintId =
+        created?.complaintId ??
         'CMP${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
 
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
         builder: (_) => ComplaintSubmittedScreen(
+          recordId: created?.id,
           complaintId: complaintId,
           category: _selectedCategory!,
           description: _descriptionController.text.trim(),
@@ -74,6 +116,18 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
         ),
       ),
     );
+  }
+
+  String _newUuid() {
+    final random = Random.secure();
+    final bytes = List<int>.generate(16, (_) => random.nextInt(256));
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    final hex = bytes
+        .map((value) => value.toRadixString(16).padLeft(2, '0'))
+        .join();
+    return '${hex.substring(0, 8)}-${hex.substring(8, 12)}-${hex.substring(12, 16)}-'
+        '${hex.substring(16, 20)}-${hex.substring(20)}';
   }
 
   @override
@@ -316,8 +370,24 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
 
   Widget _buildPhotoUpload() {
     return GestureDetector(
-      onTap: () {
-        setState(() => _hasPhoto = !_hasPhoto);
+      onTap: () async {
+        if (_photo != null) {
+          setState(() {
+            _photo = null;
+            _hasPhoto = false;
+          });
+        } else {
+          final selected = await ImagePicker().pickImage(
+            source: ImageSource.gallery,
+            imageQuality: 85,
+            maxWidth: 1920,
+          );
+          if (selected == null || !mounted) return;
+          setState(() {
+            _photo = selected;
+            _hasPhoto = true;
+          });
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(

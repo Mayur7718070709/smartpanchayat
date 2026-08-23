@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../core/app_runtime.dart';
 import '../../models/complaint_model.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/ds_states.dart';
@@ -20,6 +21,23 @@ class _TrackComplaintScreenState extends State<TrackComplaintScreen> {
   final _additionalInfoController = TextEditingController();
   bool _showAddInfo = false;
   bool _infoSubmitted = false;
+  late List<ComplaintTimelineEvent> _timeline;
+
+  @override
+  void initState() {
+    super.initState();
+    _timeline = widget.complaint.timeline;
+    if (AppRuntime.usesRealApi) _loadHistory();
+  }
+
+  Future<void> _loadHistory() async {
+    try {
+      final items = await AppRuntime.complaints.history(widget.complaint.id);
+      if (mounted) setState(() => _timeline = items);
+    } catch (_) {
+      // The complaint itself remains usable if timeline refresh fails.
+    }
+  }
 
   bool get _canRate =>
       widget.complaint.currentStatus == ComplaintStatus.resolved ||
@@ -39,7 +57,14 @@ class _TrackComplaintScreenState extends State<TrackComplaintScreen> {
   Future<void> _submitAdditionalInfo() async {
     if (_additionalInfoController.text.trim().isEmpty) return;
     setState(() => _isLoading = true);
-    await Future.delayed(const Duration(milliseconds: 800));
+    if (AppRuntime.usesRealApi) {
+      await AppRuntime.complaints.addInformation(
+        widget.complaint.id,
+        _additionalInfoController.text.trim(),
+      );
+    } else {
+      await Future.delayed(const Duration(milliseconds: 800));
+    }
     setState(() {
       _isLoading = false;
       _infoSubmitted = true;
@@ -60,7 +85,11 @@ class _TrackComplaintScreenState extends State<TrackComplaintScreen> {
 
   Future<void> _submitRating(int rating) async {
     setState(() => _userRating = rating);
-    await Future.delayed(const Duration(milliseconds: 500));
+    if (AppRuntime.usesRealApi) {
+      await AppRuntime.complaints.rate(widget.complaint.id, rating);
+    } else {
+      await Future.delayed(const Duration(milliseconds: 500));
+    }
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -120,6 +149,24 @@ class _TrackComplaintScreenState extends State<TrackComplaintScreen> {
     );
 
     if (confirmed == true && mounted) {
+      if (AppRuntime.usesRealApi) {
+        try {
+          await AppRuntime.complaints.reopen(
+            widget.complaint.id,
+            'Citizen requested complaint reopening',
+          );
+        } catch (_) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Complaint could not be reopened.'),
+              backgroundColor: AppTheme.error,
+            ),
+          );
+          return;
+        }
+      }
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -371,7 +418,7 @@ class _TrackComplaintScreenState extends State<TrackComplaintScreen> {
             final isLast = index == allStatuses.length - 1;
 
             // Find matching timeline event
-            final event = widget.complaint.timeline
+            final event = _timeline
                 .where((e) => e.status == status)
                 .firstOrNull;
 
