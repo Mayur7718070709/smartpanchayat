@@ -57,7 +57,7 @@ class _HomeScreenState extends State<HomeScreen> {
         // The live API exposes tenant identity but no approved Panchayat
         // display-metadata contract. Do not reuse the demo Panchayat name.
         _citizen['panchayatName'] = 'Your Gram Panchayat';
-        _notices = [];
+        _notices = await AppRuntime.notices.list(limit: 4);
         setState(() => _loadState = HomeLoadState.loaded);
       } catch (_) {
         if (mounted) setState(() => _loadState = HomeLoadState.error);
@@ -386,7 +386,7 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 20),
 
               // ── Government Schemes ──
-              if (!AppRuntime.usesRealApi)
+              if (_notices.isNotEmpty)
                 _buildSectionHeader(
                   context,
                   'सरकारी योजना',
@@ -409,10 +409,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   'Recent Notices',
                   () => context.go('/notices-screen'),
                 ),
-              if (!AppRuntime.usesRealApi) const SizedBox(height: 12),
-              if (!AppRuntime.usesRealApi)
+              if (_notices.isNotEmpty) const SizedBox(height: 12),
+              if (_notices.isNotEmpty)
                 RecentNoticesWidget(notices: _notices.take(4).toList()),
-              if (!AppRuntime.usesRealApi) const SizedBox(height: 20),
+              if (_notices.isNotEmpty) const SizedBox(height: 20),
 
               // ── Important Contacts ──
               _buildSectionHeader(

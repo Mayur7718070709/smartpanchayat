@@ -62,6 +62,35 @@ class NoticeModel {
     );
   }
 
+  factory NoticeModel.fromApi(Map<String, dynamic> json) {
+    final publishedAt = DateTime.parse(
+      json['published_at'] as String,
+    ).toLocal();
+    final panchayatName = json['panchayat_name'] as String;
+    return NoticeModel(
+      id: json['id'] as String,
+      title: json['title_mr'] as String,
+      titleEn: json['title_en'] as String,
+      description: json['summary_mr'] as String,
+      descriptionEn: json['summary_en'] as String,
+      fullContent: json['body_mr'] as String,
+      fullContentEn: json['body_en'] as String,
+      date:
+          '${publishedAt.year.toString().padLeft(4, '0')}-'
+          '${publishedAt.month.toString().padLeft(2, '0')}-'
+          '${publishedAt.day.toString().padLeft(2, '0')}',
+      category: (json['category'] as String).toLowerCase(),
+      isUnread: json['is_unread'] as bool,
+      attachmentUrl: json['attachment_url'] as String?,
+      attachmentName: json['attachment_name'] as String?,
+      panchayatName: panchayatName,
+      panchayatNameEn: panchayatName,
+      district: json['district'] as String? ?? '',
+      taluka: json['taluka'] as String? ?? '',
+      issuedBy: json['issued_by'] as String,
+    );
+  }
+
   Map<String, dynamic> toMap() => {
     'id': id,
     'title': title,
