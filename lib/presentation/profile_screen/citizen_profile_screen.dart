@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/app_runtime.dart';
+import '../../core/citizens/citizen_profile.dart';
 import '../../theme/app_theme.dart';
 import '../../data/mock_data.dart';
 import '../../routes/app_routes.dart';
@@ -16,6 +17,9 @@ class CitizenProfileScreen extends StatefulWidget {
 
 class _CitizenProfileScreenState extends State<CitizenProfileScreen> {
   bool _isEditing = false;
+  bool _isLoading = false;
+  Object? _loadError;
+  CitizenProfile? _profile;
 
   late TextEditingController _nameController;
   late TextEditingController _mobileController;
@@ -54,7 +58,56 @@ class _CitizenProfileScreenState extends State<CitizenProfileScreen> {
     _pincodeController = TextEditingController(text: '415019');
     _wardController = TextEditingController(text: 'वार्ड क्र. ३ / Ward No. 3');
     _wardNoController = TextEditingController(text: '3');
+    if (AppRuntime.usesRealApi) {
+      for (final controller in [
+        _nameController,
+        _mobileController,
+        _emailController,
+        _dobController,
+        _genderController,
+        _addressController,
+        _villageController,
+        _talukaController,
+        _districtController,
+        _pincodeController,
+        _wardController,
+        _wardNoController,
+      ]) {
+        controller.clear();
+      }
+      _loadProfile();
+    }
   }
+
+  Future<void> _loadProfile() async {
+    setState(() {
+      _isLoading = true;
+      _loadError = null;
+    });
+    try {
+      final profile = await AppRuntime.citizenProfile.fetch();
+      if (!mounted) return;
+      _profile = profile;
+      _nameController.text = profile.fullName;
+      _mobileController.text = AppRuntime.auth.currentUserPhone ?? '';
+      _emailController.text = AppRuntime.auth.currentUserEmail ?? '';
+      _dobController.text = _formatDate(profile.dateOfBirth);
+      _genderController.text = profile.gender ?? '';
+      _addressController.text = profile.address ?? '';
+      _wardController.text = profile.ward ?? '';
+      _wardNoController.text = profile.ward ?? '';
+    } catch (error) {
+      if (!mounted) return;
+      _loadError = error;
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  String _formatDate(DateTime? value) => value == null
+      ? ''
+      : '${value.day.toString().padLeft(2, '0')}/'
+            '${value.month.toString().padLeft(2, '0')}/${value.year}';
 
   @override
   void dispose() {
@@ -74,6 +127,12 @@ class _CitizenProfileScreenState extends State<CitizenProfileScreen> {
   }
 
   void _toggleEdit() {
+    if (AppRuntime.usesRealApi) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile updates are not available yet.')),
+      );
+      return;
+    }
     if (_isEditing) {
       if (_formKey.currentState?.validate() ?? false) {
         setState(() => _isEditing = false);
@@ -281,7 +340,34 @@ class _CitizenProfileScreenState extends State<CitizenProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final profile = MockData.citizenProfile;
+    if (AppRuntime.usesRealApi && _isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    if (AppRuntime.usesRealApi && _loadError != null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Citizen Profile')),
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Unable to load citizen profile.'),
+              const SizedBox(height: 12),
+              ElevatedButton(
+                onPressed: _loadProfile,
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    final profile = AppRuntime.usesRealApi
+        ? <String, dynamic>{
+            'name': _profile?.fullName ?? '',
+            'mobile': AppRuntime.auth.currentUserPhone ?? '',
+            'panchayatName': '—',
+          }
+        : MockData.citizenProfile;
     return Scaffold(
       backgroundColor: AppTheme.backgroundLight,
       body: Form(
@@ -375,17 +461,22 @@ class _CitizenProfileScreenState extends State<CitizenProfileScreen> {
                         color: AppTheme.primaryContainer,
                       ),
                       child: ClipOval(
-                        child: Image.network(
-                          'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=200',
-                          fit: BoxFit.cover,
-                          semanticLabel:
-                              'Young Indian man with short dark hair and warm smile, profile photo',
-                          errorBuilder: (_, __, ___) => const Icon(
-                            Icons.person_rounded,
-                            size: 40,
-                            color: AppTheme.primary,
-                          ),
-                        ),
+                        child: AppRuntime.usesRealApi
+                            ? const Icon(
+                                Icons.person_rounded,
+                                size: 40,
+                                color: AppTheme.primary,
+                              )
+                            : Image.network(
+                                'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=200',
+                                fit: BoxFit.cover,
+                                semanticLabel: 'Citizen profile photo',
+                                errorBuilder: (_, __, ___) => const Icon(
+                                  Icons.person_rounded,
+                                  size: 40,
+                                  color: AppTheme.primary,
+                                ),
+                              ),
                       ),
                     ),
                     Positioned(
@@ -431,7 +522,9 @@ class _CitizenProfileScreenState extends State<CitizenProfileScreen> {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      '+91 ${profile['mobile']}',
+                      AppRuntime.usesRealApi
+                          ? profile['mobile'] as String
+                          : '+91 ${profile['mobile']}',
                       style: GoogleFonts.notoSans(
                         fontSize: 13,
                         color: Colors.white70,
