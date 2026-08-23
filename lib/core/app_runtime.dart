@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'auth/auth_context_repository.dart';
 import 'auth/phone_auth_service.dart';
+import 'assistant/assistant_repository.dart';
 import 'config/app_config.dart';
 import 'citizens/citizen_profile_repository.dart';
 import 'complaints/complaint_repository.dart';
@@ -19,6 +20,7 @@ class AppRuntime {
 
   static final AppConfig config = AppConfig.fromEnvironment();
   static PhoneAuthService? _auth;
+  static AssistantRepository? _assistant;
   static AuthContextRepository? _authContext;
   static CitizenProfileRepository? _citizenProfile;
   static ComplaintRepository? _complaints;
@@ -37,6 +39,10 @@ class AppRuntime {
 
   static AuthContextRepository get authContext =>
       _authContext ?? (throw StateError('FastAPI client is not initialized.'));
+
+  static AssistantRepository get assistant =>
+      _assistant ??
+      (throw StateError('Assistant repository is not initialized.'));
 
   static CitizenProfileRepository get citizenProfile =>
       _citizenProfile ??
@@ -85,6 +91,7 @@ class AppRuntime {
       tokenProvider: () async => authService.accessToken,
     );
     _auth = authService;
+    _assistant = AssistantRepository(apiClient);
     _authContext = AuthContextRepository(apiClient);
     _citizenProfile = CitizenProfileRepository(apiClient);
     _complaints = ComplaintRepository(apiClient);
