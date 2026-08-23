@@ -29,7 +29,7 @@ class _AssistantAvailabilityScreenState
       _isUnavailable = false;
     });
     try {
-      await AppRuntime.assistant.checkKnowledgeBaseAvailability();
+      await AppRuntime.faq.checkAvailability();
       if (!mounted) return;
       setState(() {
         _isLoading = false;
