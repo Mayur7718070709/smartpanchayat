@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
+import '../../core/app_runtime.dart';
 import '../../data/mock_data.dart';
 import '../../models/notice_model.dart';
 import '../../theme/app_theme.dart';
@@ -321,8 +322,8 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 14),
 
               // ── Important Notice Banner ──
-              const ImportantNoticeWidget(),
-              const SizedBox(height: 20),
+              if (!AppRuntime.usesRealApi) const ImportantNoticeWidget(),
+              if (!AppRuntime.usesRealApi) const SizedBox(height: 20),
 
               // ── Stats Banner ──
               ClipRRect(
@@ -383,15 +384,17 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 20),
 
               // ── Recent Notices ──
-              _buildSectionHeader(
-                context,
-                'अलीकडील सूचना',
-                'Recent Notices',
-                () => context.go('/notices-screen'),
-              ),
-              const SizedBox(height: 12),
-              RecentNoticesWidget(notices: _notices.take(4).toList()),
-              const SizedBox(height: 20),
+              if (!AppRuntime.usesRealApi)
+                _buildSectionHeader(
+                  context,
+                  'अलीकडील सूचना',
+                  'Recent Notices',
+                  () => context.go('/notices-screen'),
+                ),
+              if (!AppRuntime.usesRealApi) const SizedBox(height: 12),
+              if (!AppRuntime.usesRealApi)
+                RecentNoticesWidget(notices: _notices.take(4).toList()),
+              if (!AppRuntime.usesRealApi) const SizedBox(height: 20),
 
               // ── Important Contacts ──
               _buildSectionHeader(
