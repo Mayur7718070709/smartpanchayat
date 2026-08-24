@@ -949,7 +949,7 @@ class _CitizenProfileScreenState extends State<CitizenProfileScreen> {
             'Privacy Policy',
             () => _showInfoSheet(
               'गोपनीयता धोरण / Privacy Policy',
-              'Smart Panchayat आपल्या वैयक्तिक माहितीचे संरक्षण करण्यासाठी वचनबद्ध आहे. आपली माहिती फक्त ग्रामपंचायत सेवा पुरवण्यासाठी वापरली जाते आणि तृतीय पक्षाशी शेअर केली जात नाही.\n\nSmart Panchayat is committed to protecting your personal information. Your data is used only for providing Gram Panchayat services and is not shared with third parties.\n\nआपल्याला आपली माहिती हटवण्याचा अधिकार आहे. अधिक माहितीसाठी ग्रामपंचायत कार्यालयाशी संपर्क साधा.',
+              'Smart Panchayat ग्रामपंचायत सेवा देण्यासाठी आणि सुरक्षित ठेवण्यासाठी वैयक्तिक माहिती वापरते. अधिकृत पंचायत कर्मचारी तसेच आवश्यक पायाभूत सुविधा, OTP आणि पेमेंट सेवा प्रदाते सक्षम सेवा चालवण्यासाठी मर्यादित माहिती प्रक्रिया करू शकतात. माहितीची विक्री किंवा वर्तनाधारित जाहिरातींसाठी वापर केला जात नाही.\n\nSmart Panchayat uses personal information to provide and secure Gram Panchayat services. Authorized Panchayat personnel and contracted infrastructure, OTP and payment providers may process information only as needed to operate enabled services. We do not sell personal information or use it for behavioural advertising.\n\nकायद्यानुसार माहिती पाहणे, दुरुस्ती किंवा हटविण्याची विनंती करण्यासाठी प्रकाशित गोपनीयता संपर्क वापरा. / Use the published privacy contact to request access, correction or deletion where legally permitted.',
             ),
           ),
           _buildDivider(),
