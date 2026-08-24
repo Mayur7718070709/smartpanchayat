@@ -63,10 +63,11 @@ class _SchemesScreenState extends State<SchemesScreen> {
     });
     try {
       if (AppRuntime.usesRealApi) {
-        await AppRuntime.schemes.checkAvailability();
+        final schemes = await AppRuntime.schemes.list();
         if (!mounted) return;
         setState(() {
-          _featureUnavailable = true;
+          _allSchemes = schemes;
+          _applyFilters();
           _isLoading = false;
         });
         return;

@@ -308,7 +308,9 @@ class SchemeDetailScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  scheme.informationSource,
+                  scheme.informationSourceEn.isEmpty
+                      ? scheme.informationSource
+                      : '${scheme.informationSource}\n${scheme.informationSourceEn}',
                   style: GoogleFonts.notoSans(
                     fontSize: 11,
                     color: AppTheme.onWarningContainer,
@@ -457,7 +459,9 @@ class SchemeDetailScreen extends StatelessWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  entry.value,
+                  entry.key < scheme.requiredDocumentsEn.length
+                      ? '${entry.value}\n${scheme.requiredDocumentsEn[entry.key]}'
+                      : entry.value,
                   style: GoogleFonts.notoSans(
                     fontSize: 13,
                     color: AppTheme.textPrimary,
@@ -491,7 +495,9 @@ class SchemeDetailScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    scheme.officialSourceLabel,
+                    scheme.officialSourceLabelEn.isEmpty
+                        ? scheme.officialSourceLabel
+                        : '${scheme.officialSourceLabel} / ${scheme.officialSourceLabelEn}',
                     style: GoogleFonts.notoSans(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
