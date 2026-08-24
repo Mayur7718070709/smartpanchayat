@@ -1,0 +1,5 @@
+# Copy to key.properties. Never commit key.properties or the .jks file.
+storePassword=REPLACE_WITH_SECURE_PASSWORD
+keyPassword=REPLACE_WITH_SECURE_PASSWORD
+keyAlias=smartpanchayat-upload
+storeFile=C:/secure/path/smartpanchayat-upload.jks
