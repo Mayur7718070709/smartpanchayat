@@ -88,3 +88,43 @@ class ServiceRequestStatusHistory {
   final String? remark;
   final DateTime changedAt;
 }
+
+class ServiceRequestDocument {
+  const ServiceRequestDocument({
+    required this.id,
+    required this.documentCode,
+    required this.filename,
+    required this.status,
+    this.rejectionReason,
+  });
+  final String id;
+  final String documentCode;
+  final String filename;
+  final String status;
+  final String? rejectionReason;
+  factory ServiceRequestDocument.fromJson(Map<String, dynamic> json) =>
+      ServiceRequestDocument(
+        id: json['id'] as String,
+        documentCode: json['document_code'] as String,
+        filename: json['original_filename'] as String,
+        status: json['status'] as String,
+        rejectionReason: json['rejection_reason'] as String?,
+      );
+}
+
+class ServiceRequestCorrection {
+  const ServiceRequestCorrection({
+    required this.reason,
+    required this.status,
+    this.documentCode,
+  });
+  final String reason;
+  final String status;
+  final String? documentCode;
+  factory ServiceRequestCorrection.fromJson(Map<String, dynamic> json) =>
+      ServiceRequestCorrection(
+        reason: json['reason'] as String,
+        status: json['status'] as String,
+        documentCode: json['document_code'] as String?,
+      );
+}
