@@ -1,8 +1,11 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../theme/app_theme.dart';
 import '../../core/app_runtime.dart';
+import '../../core/network/api_exception.dart';
 import '../../widgets/star_rating_widget.dart';
 import './feedback_thank_you_screen.dart';
 import './feedback_availability_screen.dart';
@@ -101,7 +104,28 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
       return;
     }
     setState(() => _isSubmitting = true);
-    await Future.delayed(const Duration(milliseconds: 1200));
+    try {
+      if (AppRuntime.usesRealApi) {
+        await AppRuntime.feedback.create(
+          serviceRequestId: widget.requestId!,
+          overallRating: _overallRating,
+          categoryRatings: _categoryRatings,
+          comment: _commentController.text.trim().isEmpty
+              ? null
+              : _commentController.text.trim(),
+          idempotencyKey: _newUuid(),
+        );
+      } else {
+        await Future.delayed(const Duration(milliseconds: 1200));
+      }
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() => _isSubmitting = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.message)));
+      return;
+    }
     if (!mounted) return;
     setState(() => _isSubmitting = false);
     Navigator.of(context).pushReplacement(
@@ -109,9 +133,21 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
     );
   }
 
+  String _newUuid() {
+    final random = Random.secure();
+    final bytes = List<int>.generate(16, (_) => random.nextInt(256));
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    final hex = bytes
+        .map((value) => value.toRadixString(16).padLeft(2, '0'))
+        .join();
+    return '${hex.substring(0, 8)}-${hex.substring(8, 12)}-${hex.substring(12, 16)}-'
+        '${hex.substring(16, 20)}-${hex.substring(20)}';
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (AppRuntime.usesRealApi) {
+    if (AppRuntime.usesRealApi && widget.requestId == null) {
       return const FeedbackAvailabilityScreen();
     }
     return Scaffold(

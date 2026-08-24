@@ -126,11 +126,37 @@ class _CitizenProfileScreenState extends State<CitizenProfileScreen> {
     super.dispose();
   }
 
-  void _toggleEdit() {
+  Future<void> _toggleEdit() async {
+    if (AppRuntime.usesRealApi && _isEditing) {
+      if (!(_formKey.currentState?.validate() ?? false) || _profile == null) {
+        return;
+      }
+      try {
+        final updated = await AppRuntime.citizenProfile.update(
+          fullName: _nameController.text.trim(),
+          address: _addressController.text.trim(),
+          wardId: _profile!.wardId,
+          gender: _profile!.gender,
+          dateOfBirth: _profile!.dateOfBirth,
+          preferredLanguage: _profile!.preferredLanguage,
+        );
+        if (!mounted) return;
+        _profile = updated;
+        setState(() => _isEditing = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profile updated successfully.')),
+        );
+      } catch (error) {
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(error.toString())));
+        }
+      }
+      return;
+    }
     if (AppRuntime.usesRealApi) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile updates are not available yet.')),
-      );
+      setState(() => _isEditing = true);
       return;
     }
     if (_isEditing) {

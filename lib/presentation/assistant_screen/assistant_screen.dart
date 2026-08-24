@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -5,9 +7,9 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 
 import '../../data/faq_data.dart';
 import '../../core/app_runtime.dart';
+import '../../core/network/api_exception.dart';
 import '../../models/faq_model.dart';
 import '../../theme/app_theme.dart';
-import './assistant_availability_screen.dart';
 
 /// Smart Panchayat Q&A Assistant — Phase 1 (FAQ/controlled database).
 /// Architecture is LLM/RAG-ready: swap [FaqData.findAnswer] with an API call
@@ -26,6 +28,7 @@ class _AssistantScreenState extends State<AssistantScreen>
   final ScrollController _scrollController = ScrollController();
   bool _isTyping = false;
   bool _isOffline = false;
+  String? _conversationId;
 
   static const List<String> _quickQuestions = [
     'How can I register a complaint?',
@@ -37,13 +40,16 @@ class _AssistantScreenState extends State<AssistantScreen>
   @override
   void initState() {
     super.initState();
-    if (AppRuntime.usesRealApi) return;
     _checkConnectivity();
     _addWelcomeMessage();
+    if (AppRuntime.usesRealApi) unawaited(_startConversation());
   }
 
   @override
   void dispose() {
+    if (AppRuntime.usesRealApi && _conversationId != null) {
+      unawaited(AppRuntime.faq.deleteConversation(_conversationId!));
+    }
     _inputController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -52,7 +58,27 @@ class _AssistantScreenState extends State<AssistantScreen>
   void _checkConnectivity() async {
     final result = await Connectivity().checkConnectivity();
     if (mounted) {
-      setState(() => _isOffline = result == ConnectivityResult.none);
+      setState(() => _isOffline = result.contains(ConnectivityResult.none));
+    }
+  }
+
+  Future<void> _startConversation() async {
+    try {
+      final conversation = await AppRuntime.faq.createConversation();
+      if (mounted) setState(() => _conversationId = conversation.id);
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _messages.add(
+          ChatMessage(
+            id: 'startup_error',
+            text: error.message,
+            isUser: false,
+            timestamp: DateTime.now(),
+            state: ChatMessageState.networkError,
+          ),
+        );
+      });
     }
   }
 
@@ -78,7 +104,7 @@ class _AssistantScreenState extends State<AssistantScreen>
 
     // Check connectivity
     final result = await Connectivity().checkConnectivity();
-    if (result == ConnectivityResult.none) {
+    if (result.contains(ConnectivityResult.none)) {
       setState(() => _isOffline = true);
       _addNetworkErrorMessage();
       return;
@@ -102,11 +128,53 @@ class _AssistantScreenState extends State<AssistantScreen>
     await Future.delayed(const Duration(milliseconds: 900));
 
     // Phase 1: FAQ lookup — Phase 2: replace with LLM/RAG API call
-    final faqAnswer = FaqData.findAnswer(trimmed);
+    FaqAnswer? faqAnswer;
+    AssistantAnswer? apiAnswer;
+    try {
+      if (AppRuntime.usesRealApi) {
+        if (_conversationId == null) await _startConversation();
+        if (_conversationId == null) {
+          throw const ApiException(
+            code: ApiErrorCode.connectivityError,
+            message: 'Assistant conversation could not be started.',
+          );
+        }
+        apiAnswer = await AppRuntime.faq.ask(_conversationId!, trimmed);
+      } else {
+        faqAnswer = FaqData.findAnswer(trimmed);
+      }
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _isTyping = false;
+        _messages.add(
+          ChatMessage(
+            id: 'err_${DateTime.now().millisecondsSinceEpoch}',
+            text: error.message,
+            isUser: false,
+            timestamp: DateTime.now(),
+            state: ChatMessageState.networkError,
+          ),
+        );
+      });
+      return;
+    }
 
     if (!mounted) return;
 
-    final botMsg = faqAnswer != null
+    final botMsg = apiAnswer != null
+        ? ChatMessage(
+            id: apiAnswer.id,
+            text: '${apiAnswer.answerMr}\n\n${apiAnswer.answerEn}',
+            isUser: false,
+            timestamp: apiAnswer.createdAt,
+            source: apiAnswer.citation?['title_en']?.toString(),
+            lastUpdated: apiAnswer.citation?['reviewed_at']?.toString(),
+            state: apiAnswer.outcome == 'NO_APPROVED_ANSWER'
+                ? ChatMessageState.noAnswer
+                : ChatMessageState.delivered,
+          )
+        : faqAnswer != null
         ? ChatMessage(
             id: 'bot_${DateTime.now().millisecondsSinceEpoch}',
             text: faqAnswer.answer,
@@ -160,9 +228,6 @@ class _AssistantScreenState extends State<AssistantScreen>
 
   @override
   Widget build(BuildContext context) {
-    if (AppRuntime.usesRealApi) {
-      return const AssistantAvailabilityScreen();
-    }
     return Scaffold(
       backgroundColor: AppTheme.backgroundLight,
       appBar: _buildAppBar(),

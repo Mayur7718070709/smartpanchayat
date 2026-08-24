@@ -10,6 +10,9 @@ class CitizenProfile {
     this.gender,
     this.dateOfBirth,
     this.profilePhotoPath,
+    this.wardId,
+    this.wardNameEn,
+    this.wardNameMr,
   });
 
   factory CitizenProfile.fromJson(Map<String, dynamic> json) => CitizenProfile(
@@ -22,6 +25,9 @@ class CitizenProfile {
         ? null
         : DateTime.parse(json['date_of_birth'] as String),
     profilePhotoPath: json['profile_photo_path'] as String?,
+    wardId: json['ward_id'] as String?,
+    wardNameEn: json['ward_name_en'] as String?,
+    wardNameMr: json['ward_name_mr'] as String?,
     preferredLanguage: json['preferred_language'] as String,
     createdAt: DateTime.parse(json['created_at'] as String),
     updatedAt: DateTime.parse(json['updated_at'] as String),
@@ -34,6 +40,9 @@ class CitizenProfile {
   final String? gender;
   final DateTime? dateOfBirth;
   final String? profilePhotoPath;
+  final String? wardId;
+  final String? wardNameEn;
+  final String? wardNameMr;
   final String preferredLanguage;
   final DateTime createdAt;
   final DateTime updatedAt;

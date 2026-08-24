@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../theme/app_theme.dart';
 import '../../routes/app_routes.dart';
 import '../../core/app_runtime.dart';
-import './production_onboarding_unavailable_screen.dart';
 
 class ProfileSetupScreen extends StatefulWidget {
   const ProfileSetupScreen({super.key});
@@ -19,6 +19,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
   final _nameController = TextEditingController();
   final _addressController = TextEditingController();
   final _wardController = TextEditingController();
+  final _inviteController = TextEditingController();
+  XFile? _selectedPhoto;
   bool _isLoading = false;
   bool _hasProfilePhoto = false;
 
@@ -52,23 +54,60 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
     _nameController.dispose();
     _addressController.dispose();
     _wardController.dispose();
+    _inviteController.dispose();
     _entranceController.dispose();
     super.dispose();
   }
 
   Future<void> _continue() async {
-    if (AppRuntime.usesRealApi) return;
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
     // Mock save — replace with real persistence
-    await Future.delayed(const Duration(milliseconds: 600));
+    try {
+      if (AppRuntime.usesRealApi) {
+        await AppRuntime.citizenProfile.onboard(
+          inviteCode: _inviteController.text.trim(),
+          fullName: _nameController.text.trim(),
+          address: _addressController.text.trim(),
+        );
+        if (_selectedPhoto != null) {
+          await AppRuntime.citizenProfile.uploadPhoto(
+            await _selectedPhoto!.readAsBytes(),
+            _selectedPhoto!.mimeType ?? 'image/jpeg',
+          );
+        }
+      } else {
+        await Future.delayed(const Duration(milliseconds: 600));
+      }
+    } catch (error) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.toString())));
+      }
+      return;
+    }
     if (!mounted) return;
     setState(() => _isLoading = false);
     context.go(AppRoutes.panchayatConfirmationScreen);
   }
 
-  void _pickPhoto() {
-    if (AppRuntime.usesRealApi) return;
+  Future<void> _pickPhoto() async {
+    if (AppRuntime.usesRealApi) {
+      final photo = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+        maxWidth: 1200,
+      );
+      if (photo != null && mounted) {
+        setState(() {
+          _selectedPhoto = photo;
+          _hasProfilePhoto = true;
+        });
+      }
+      return;
+    }
     // Mock photo selection — shows a snackbar for demo
     setState(() => _hasProfilePhoto = !_hasProfilePhoto);
     ScaffoldMessenger.of(context).showSnackBar(
@@ -86,9 +125,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
 
   @override
   Widget build(BuildContext context) {
-    if (AppRuntime.usesRealApi) {
-      return const ProductionOnboardingUnavailableScreen();
-    }
     return Scaffold(
       backgroundColor: AppTheme.backgroundLight,
       body: SafeArea(
@@ -128,6 +164,20 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (AppRuntime.usesRealApi) ...[
+          _buildFieldLabel('आमंत्रण कोड *', 'Invitation Code *'),
+          const SizedBox(height: 8),
+          _buildTextField(
+            controller: _inviteController,
+            hint: 'पंचायतीकडून मिळालेला कोड',
+            hintEn: 'Code issued by Panchayat',
+            icon: Icons.verified_user_outlined,
+            validator: (value) => value == null || value.trim().isEmpty
+                ? 'Invitation code is required'
+                : null,
+          ),
+          const SizedBox(height: 20),
+        ],
         // Step badge
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
@@ -293,9 +343,11 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
           },
         ),
         const SizedBox(height: 20),
-        _buildFieldLabel('वार्ड *', 'Ward *'),
-        const SizedBox(height: 8),
-        _buildWardDropdown(),
+        if (!AppRuntime.usesRealApi) ...[
+          _buildFieldLabel('वार्ड *', 'Ward *'),
+          const SizedBox(height: 8),
+          _buildWardDropdown(),
+        ],
       ],
     );
   }

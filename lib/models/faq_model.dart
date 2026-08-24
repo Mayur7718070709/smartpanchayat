@@ -19,6 +19,54 @@ class FaqAnswer {
   });
 }
 
+class AssistantConversation {
+  const AssistantConversation({
+    required this.id,
+    required this.createdAt,
+    required this.expiresAt,
+  });
+  factory AssistantConversation.fromJson(Map<String, dynamic> json) =>
+      AssistantConversation(
+        id: json['id'] as String,
+        createdAt: DateTime.parse(json['created_at'] as String),
+        expiresAt: DateTime.parse(json['expires_at'] as String),
+      );
+  final String id;
+  final DateTime createdAt;
+  final DateTime expiresAt;
+}
+
+class AssistantAnswer {
+  const AssistantAnswer({
+    required this.id,
+    required this.conversationId,
+    required this.answerEn,
+    required this.answerMr,
+    required this.outcome,
+    required this.createdAt,
+    this.citation,
+  });
+  factory AssistantAnswer.fromJson(Map<String, dynamic> json) =>
+      AssistantAnswer(
+        id: json['id'] as String,
+        conversationId: json['conversation_id'] as String,
+        answerEn: json['answer_en'] as String,
+        answerMr: json['answer_mr'] as String,
+        outcome: json['outcome'] as String,
+        createdAt: DateTime.parse(json['created_at'] as String),
+        citation: json['citation'] == null
+            ? null
+            : Map<String, dynamic>.from(json['citation'] as Map),
+      );
+  final String id;
+  final String conversationId;
+  final String answerEn;
+  final String answerMr;
+  final String outcome;
+  final DateTime createdAt;
+  final Map<String, dynamic>? citation;
+}
+
 /// Chat message model — works for both FAQ and future LLM responses.
 class ChatMessage {
   final String id;

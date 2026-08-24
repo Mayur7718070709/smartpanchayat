@@ -1,100 +1,113 @@
 import 'package:flutter/material.dart';
-
 import '../../../core/app_runtime.dart';
-import '../../../core/network/api_exception.dart';
+import '../../../models/panchayat_content_model.dart';
 import '../../../theme/app_theme.dart';
 
 enum PanchayatContentType { contacts, events }
 
 class GatedPanchayatContentWidget extends StatefulWidget {
   const GatedPanchayatContentWidget({required this.type, super.key});
-
   final PanchayatContentType type;
-
   @override
-  State<GatedPanchayatContentWidget> createState() =>
-      _GatedPanchayatContentWidgetState();
+  State<GatedPanchayatContentWidget> createState() => _State();
 }
 
-class _GatedPanchayatContentWidgetState
-    extends State<GatedPanchayatContentWidget> {
-  bool _isLoading = true;
-  bool _isUnavailable = false;
-
+class _State extends State<GatedPanchayatContentWidget> {
+  bool loading = true;
+  String? error;
+  List<Object> items = [];
   @override
   void initState() {
     super.initState();
-    _checkAvailability();
+    load();
   }
 
-  Future<void> _checkAvailability() async {
+  Future<void> load() async {
     setState(() {
-      _isLoading = true;
-      _isUnavailable = false;
+      loading = true;
+      error = null;
     });
     try {
-      if (widget.type == PanchayatContentType.contacts) {
-        await AppRuntime.panchayatContent.checkContactsAvailability();
-      } else {
-        await AppRuntime.panchayatContent.checkEventsAvailability();
+      final value = widget.type == PanchayatContentType.contacts
+          ? await AppRuntime.panchayatContent.contacts()
+          : await AppRuntime.panchayatContent.events();
+      if (mounted) {
+        setState(() {
+          items = value.cast<Object>();
+          loading = false;
+        });
       }
-      if (!mounted) return;
-      setState(() {
-        _isLoading = false;
-        _isUnavailable = true;
-      });
-    } on ApiException catch (error) {
-      if (!mounted) return;
-      setState(() {
-        _isUnavailable =
-            error.code == ApiErrorCode.databaseContractGap ||
-            error.code == ApiErrorCode.featureNotEnabled;
-        _isLoading = false;
-      });
     } catch (_) {
-      if (!mounted) return;
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() {
+          error = 'Could not load Panchayat information.';
+          loading = false;
+        });
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final noun = widget.type == PanchayatContentType.contacts
-        ? 'contacts'
-        : 'events';
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceLight,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.outlineVariantLight),
-      ),
-      child: _isLoading
-          ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
-          : Column(
-              children: [
-                Icon(
-                  _isUnavailable
-                      ? Icons.info_outline_rounded
-                      : Icons.cloud_off_rounded,
-                  color: AppTheme.textTertiary,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  _isUnavailable
-                      ? 'Panchayat $noun are not available yet.'
-                      : 'Could not check Panchayat $noun.',
-                  textAlign: TextAlign.center,
-                ),
-                if (!_isUnavailable)
-                  TextButton.icon(
-                    onPressed: _checkAvailability,
-                    icon: const Icon(Icons.refresh_rounded),
-                    label: const Text('Retry'),
-                  ),
-              ],
+    if (loading) {
+      return const Padding(
+        padding: EdgeInsets.all(20),
+        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+      );
+    }
+    if (error != null) {
+      return Center(
+        child: TextButton.icon(
+          onPressed: load,
+          icon: const Icon(Icons.refresh),
+          label: Text(error!),
+        ),
+      );
+    }
+    if (items.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceLight,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Text(
+          widget.type == PanchayatContentType.events
+              ? 'No upcoming official events are currently published.'
+              : 'No official contacts are currently published.',
+          textAlign: TextAlign.center,
+        ),
+      );
+    }
+    return Column(
+      children: items.map((item) {
+        if (item is OfficialContact) {
+          return Card(
+            child: ListTile(
+              leading: const Icon(Icons.contact_phone),
+              title: Text(item.nameMr),
+              subtitle: Text(
+                [
+                  item.nameEn,
+                  item.phone,
+                  item.email,
+                ].whereType<String>().join('\n'),
+              ),
             ),
+          );
+        }
+        final event = item as PanchayatEvent;
+        return Card(
+          child: ListTile(
+            leading: const Icon(Icons.event),
+            title: Text(event.titleMr),
+            subtitle: Text(
+              '${event.titleEn}\n${event.venueEn}\n${event.startsAt.toLocal()}',
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 }
