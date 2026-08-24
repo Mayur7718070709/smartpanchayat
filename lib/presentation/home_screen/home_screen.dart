@@ -52,11 +52,10 @@ class _HomeScreenState extends State<HomeScreen> {
     if (AppRuntime.usesRealApi) {
       try {
         final profile = await AppRuntime.citizenProfile.fetch();
+        final panchayat = await AppRuntime.panchayatContent.profile();
         if (!mounted) return;
         _citizen['name'] = profile.fullName;
-        // The live API exposes tenant identity but no approved Panchayat
-        // display-metadata contract. Do not reuse the demo Panchayat name.
-        _citizen['panchayatName'] = 'Your Gram Panchayat';
+        _citizen['panchayatName'] = panchayat.name;
         _notices = await AppRuntime.notices.list(limit: 4);
         setState(() => _loadState = HomeLoadState.loaded);
       } catch (_) {

@@ -91,6 +91,35 @@ class ApiClient {
     decode: decode,
   );
 
+  Future<T> delete<T>(String path, {T Function(dynamic data)? decode}) async {
+    try {
+      final response = await _dio.delete<dynamic>(
+        path,
+        options: Options(extra: const {'requiresAuth': true}),
+      );
+      return decode == null ? response.data as T : decode(response.data);
+    } on DioException catch (error) {
+      throw ApiException.fromDio(error);
+    }
+  }
+
+  Future<T> put<T>(
+    String path, {
+    Object? data,
+    T Function(dynamic data)? decode,
+  }) async {
+    try {
+      final response = await _dio.put<dynamic>(
+        path,
+        data: data,
+        options: Options(extra: const {'requiresAuth': true}),
+      );
+      return decode == null ? response.data as T : decode(response.data);
+    } on DioException catch (error) {
+      throw ApiException.fromDio(error);
+    }
+  }
+
   bool _isRetryableRead(DioException error) {
     if (error.type == DioExceptionType.connectionError ||
         error.type == DioExceptionType.connectionTimeout ||
