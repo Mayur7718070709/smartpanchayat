@@ -83,11 +83,12 @@ class ApiClient {
     String path,
     List<int> data, {
     required String contentType,
+    Map<String, dynamic>? headers,
     T Function(dynamic data)? decode,
   }) => post<T>(
     path,
     data: data,
-    headers: {'Content-Type': contentType},
+    headers: {'Content-Type': contentType, ...?headers},
     decode: decode,
   );
 

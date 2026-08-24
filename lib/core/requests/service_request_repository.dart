@@ -38,4 +38,45 @@ class ServiceRequestRepository {
             )
             .toList(growable: false),
       );
+
+  Future<List<ServiceRequestDocument>> fetchDocuments(String requestId) =>
+      _apiClient.get(
+        '/api/v1/service-requests/$requestId/documents',
+        decode: (data) => (data as List)
+            .map(
+              (e) => ServiceRequestDocument.fromJson(e as Map<String, dynamic>),
+            )
+            .toList(),
+      );
+
+  Future<List<ServiceRequestCorrection>> fetchCorrections(String requestId) =>
+      _apiClient.get(
+        '/api/v1/service-requests/$requestId/corrections',
+        decode: (data) => (data as List)
+            .map(
+              (e) =>
+                  ServiceRequestCorrection.fromJson(e as Map<String, dynamic>),
+            )
+            .toList(),
+      );
+
+  Future<ServiceRequestDocument> uploadDocument(
+    String requestId,
+    String code,
+    String filename,
+    String mimeType,
+    List<int> bytes,
+  ) => _apiClient.postBytes(
+    '/api/v1/service-requests/$requestId/documents',
+    bytes,
+    contentType: mimeType,
+    headers: {'X-Document-Code': code, 'X-Filename': filename},
+    decode: (data) =>
+        ServiceRequestDocument.fromJson(data as Map<String, dynamic>),
+  );
+
+  Future<String> certificateUrl(String requestId) => _apiClient.get(
+    '/api/v1/service-requests/$requestId/certificate-url',
+    decode: (data) => (data as Map<String, dynamic>)['url'] as String,
+  );
 }
