@@ -186,6 +186,7 @@ class PaymentTransaction {
   final double amount;
   final DateTime date;
   final PaymentStatus status;
+  final String? receiptId;
 
   const PaymentTransaction({
     required this.id,
@@ -197,5 +198,93 @@ class PaymentTransaction {
     required this.amount,
     required this.date,
     required this.status,
+    this.receiptId,
   });
+
+  factory PaymentTransaction.fromApi(Map<String, dynamic> json) {
+    return PaymentTransaction(
+      id: json['id'] as String,
+      transactionId: json['provider_payment_id'] as String,
+      receiptNumber: json['receipt_number'] as String? ?? '',
+      receiptId: json['receipt_id'] as String?,
+      service: PaymentService.other,
+      requestId: '',
+      citizenName: '',
+      amount: (json['captured_amount_paise'] as num).toDouble() / 100,
+      date: DateTime.parse(json['captured_at'] as String),
+      status: PaymentStatus.success,
+    );
+  }
+}
+
+class CitizenDue {
+  const CitizenDue({
+    required this.id,
+    required this.dueType,
+    required this.referenceNumber,
+    required this.titleMr,
+    required this.titleEn,
+    required this.dueDate,
+    required this.assessedAmountPaise,
+    required this.balancePaise,
+    required this.status,
+  });
+
+  final String id;
+  final String dueType;
+  final String referenceNumber;
+  final String titleMr;
+  final String titleEn;
+  final DateTime dueDate;
+  final int assessedAmountPaise;
+  final int balancePaise;
+  final String status;
+
+  double get balance => balancePaise / 100;
+  bool get isPayable => status == 'OPEN' || status == 'PARTIALLY_PAID';
+
+  factory CitizenDue.fromApi(Map<String, dynamic> json) => CitizenDue(
+    id: json['id'] as String,
+    dueType: json['due_type'] as String,
+    referenceNumber: json['reference_number'] as String,
+    titleMr: json['title_mr'] as String,
+    titleEn: json['title_en'] as String,
+    dueDate: DateTime.parse(json['due_date'] as String),
+    assessedAmountPaise: (json['assessed_amount_paise'] as num).toInt(),
+    balancePaise: (json['balance_paise'] as num).toInt(),
+    status: json['status'] as String,
+  );
+}
+
+class PaymentOrder {
+  const PaymentOrder({
+    required this.id,
+    required this.providerOrderId,
+    required this.currency,
+    required this.amountPaise,
+    required this.status,
+    required this.dueIds,
+    required this.checkoutKeyId,
+    this.paymentVerificationStatus,
+  });
+
+  final String id;
+  final String? providerOrderId;
+  final String currency;
+  final int amountPaise;
+  final String status;
+  final List<String> dueIds;
+  final String? checkoutKeyId;
+  final String? paymentVerificationStatus;
+
+  factory PaymentOrder.fromApi(Map<String, dynamic> json) => PaymentOrder(
+    id: json['id'] as String,
+    providerOrderId: json['provider_order_id'] as String?,
+    currency: json['currency'] as String,
+    amountPaise: (json['amount_paise'] as num).toInt(),
+    status: json['status'] as String,
+    dueIds: (json['due_ids'] as List).cast<String>(),
+    checkoutKeyId: json['checkout_key_id'] as String?,
+    paymentVerificationStatus: json['payment_verification_status'] as String?,
+  );
 }

@@ -31,10 +31,10 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
   Future<void> _loadTransactions() async {
     try {
       if (AppRuntime.usesRealApi) {
-        await AppRuntime.payments.checkAvailability();
+        final transactions = await AppRuntime.payments.listTransactions();
         if (!mounted) return;
         setState(() {
-          _featureUnavailable = true;
+          _transactions = transactions;
           _isLoading = false;
         });
         return;
