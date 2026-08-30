@@ -136,6 +136,28 @@ class NotificationModel {
     this.referenceId,
   });
 
+  factory NotificationModel.fromJson(Map<String, dynamic> json) {
+    final category = switch (json['category'] as String?) {
+      'COMPLAINT_UPDATE' => NotificationCategory.complaintUpdate,
+      'PANCHAYAT_NOTICE' => NotificationCategory.panchayatNotice,
+      'PAYMENT' => NotificationCategory.payment,
+      'SCHEME' => NotificationCategory.scheme,
+      'EMERGENCY' => NotificationCategory.emergency,
+      _ => NotificationCategory.serviceUpdate,
+    };
+    return NotificationModel(
+      id: json['id'] as String,
+      title: json['title_mr'] as String,
+      titleEn: json['title_en'] as String,
+      message: json['message_mr'] as String,
+      messageEn: json['message_en'] as String,
+      dateTime: DateTime.parse(json['created_at'] as String).toLocal(),
+      category: category,
+      isRead: json['is_read'] as bool? ?? false,
+      referenceId: json['reference_id'] as String?,
+    );
+  }
+
   NotificationModel copyWith({bool? isRead}) {
     return NotificationModel(
       id: id,

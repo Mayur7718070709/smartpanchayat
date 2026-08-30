@@ -38,10 +38,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     });
     try {
       if (AppRuntime.usesRealApi) {
-        await AppRuntime.notifications.checkAvailability();
+        final notifications = await AppRuntime.notifications.list();
         if (!mounted) return;
         setState(() {
-          _featureUnavailable = true;
+          _notifications = notifications;
           _isLoading = false;
         });
         return;
@@ -79,7 +79,22 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   int get _unreadCount => _notifications.where((n) => !n.isRead).length;
 
-  void _markAsRead(String id) {
+  Future<void> _markAsRead(String id) async {
+    if (AppRuntime.usesRealApi) {
+      try {
+        await AppRuntime.notifications.markRead(id);
+      } on ApiException {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('सूचना अपडेट करता आली नाही. पुन्हा प्रयत्न करा.'),
+            ),
+          );
+        }
+        return;
+      }
+    }
+    if (!mounted) return;
     setState(() {
       final idx = _notifications.indexWhere((n) => n.id == id);
       if (idx != -1) {
@@ -88,7 +103,22 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     });
   }
 
-  void _markAllAsRead() {
+  Future<void> _markAllAsRead() async {
+    if (AppRuntime.usesRealApi) {
+      try {
+        await AppRuntime.notifications.markAllRead();
+      } on ApiException {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('सूचना अपडेट करता आली नाही. पुन्हा प्रयत्न करा.'),
+            ),
+          );
+        }
+        return;
+      }
+    }
+    if (!mounted) return;
     setState(() {
       _notifications = _notifications
           .map((n) => n.copyWith(isRead: true))
@@ -110,8 +140,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     );
   }
 
-  void _onNotificationTap(NotificationModel notification) {
-    _markAsRead(notification.id);
+  Future<void> _onNotificationTap(NotificationModel notification) async {
+    await _markAsRead(notification.id);
+    if (!mounted) return;
     context.go(notification.category.targetRoute);
   }
 

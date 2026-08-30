@@ -10,6 +10,7 @@ import 'faq/faq_repository.dart';
 import 'network/api_client.dart';
 import 'notices/notice_repository.dart';
 import 'notifications/notification_repository.dart';
+import 'notifications/push_notification_service.dart';
 import 'payments/payment_repository.dart';
 import 'panchayat/panchayat_content_repository.dart';
 import 'requests/service_request_repository.dart';
@@ -28,6 +29,7 @@ class AppRuntime {
   static FeedbackRepository? _feedback;
   static NoticeRepository? _notices;
   static NotificationRepository? _notifications;
+  static PushNotificationService? _pushNotifications;
   static PaymentRepository? _payments;
   static PanchayatContentRepository? _panchayatContent;
   static SchemeRepository? _schemes;
@@ -102,11 +104,17 @@ class AppRuntime {
     _complaints = ComplaintRepository(apiClient);
     _feedback = FeedbackRepository(apiClient);
     _notices = NoticeRepository(apiClient);
-    _notifications = NotificationRepository(apiClient);
+    final notifications = NotificationRepository(apiClient);
+    _notifications = notifications;
     _payments = PaymentRepository(apiClient);
     _panchayatContent = PanchayatContentRepository(apiClient);
     _schemes = SchemeRepository(apiClient);
     _services = ServiceRepository(apiClient);
     _serviceRequests = ServiceRequestRepository(apiClient);
+    _pushNotifications = PushNotificationService(
+      notifications,
+      Supabase.instance.client,
+    );
+    await _pushNotifications!.initialize();
   }
 }
