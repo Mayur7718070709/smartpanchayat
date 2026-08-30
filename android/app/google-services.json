@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1065892749907",
+    "project_id": "mexon-smartpanchayat-prod",
+    "storage_bucket": "mexon-smartpanchayat-prod.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1065892749907:android:ab6e15480a13cd06a49ca6",
+        "android_client_info": {
+          "package_name": "com.mexonintelligence.smartpanchayat"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD-ScFeZ-5O6QoGLOspOvmzPdUi1MPH3xg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
