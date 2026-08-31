@@ -6,18 +6,38 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../models/service_model.dart';
 import '../../core/app_runtime.dart';
+import '../../core/requests/service_request.dart';
 import '../../theme/app_theme.dart';
 import './application_submitted_screen.dart';
 
-class ApplicationReviewScreen extends StatelessWidget {
+class ApplicationReviewScreen extends StatefulWidget {
   final ServiceModel service;
   final Map<String, dynamic> formValues;
+  final PublishedServiceForm? publishedForm;
+  final List<SelectedServiceDocument> documents;
 
   const ApplicationReviewScreen({
     required this.service,
     required this.formValues,
+    required this.publishedForm,
+    required this.documents,
     super.key,
   });
+
+  @override
+  State<ApplicationReviewScreen> createState() =>
+      _ApplicationReviewScreenState();
+}
+
+class _ApplicationReviewScreenState extends State<ApplicationReviewScreen> {
+  ServiceModel get service => widget.service;
+  Map<String, dynamic> get formValues => widget.formValues;
+
+  late final String _draftIdempotencyKey = _newUuid();
+  late final String _submissionIdempotencyKey = _newUuid();
+  ServiceRequestDraft? _draft;
+  bool _documentsUploaded = false;
+  bool _submitting = false;
 
   @override
   Widget build(BuildContext context) {
@@ -453,48 +473,83 @@ class ApplicationReviewScreen extends StatelessWidget {
             child: SizedBox(
               height: 52,
               child: ElevatedButton(
-                onPressed: () async {
-                  HapticFeedback.mediumImpact();
-                  if (!AppRuntime.usesRealApi) {
-                    final requestId =
-                        'GP${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => ApplicationSubmittedScreen(
-                          service: service,
-                          requestId: requestId,
-                          submittedDate: DateTime.now(),
-                        ),
-                      ),
-                    );
-                    return;
-                  }
-                  try {
-                    final request = await AppRuntime.serviceRequests.create(
-                      serviceId: service.id,
-                      formData: formValues,
-                      idempotencyKey: _newUuid(),
-                    );
-                    if (!context.mounted) return;
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => ApplicationSubmittedScreen(
-                          service: service,
-                          requestId: request.requestNumber,
-                          submittedDate:
-                              request.submittedAt ?? request.createdAt,
-                        ),
-                      ),
-                    );
-                  } catch (error) {
-                    if (!context.mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Application failed: $error')),
-                    );
-                  }
-                },
+                onPressed: _submitting
+                    ? null
+                    : () async {
+                        HapticFeedback.mediumImpact();
+                        if (!AppRuntime.usesRealApi) {
+                          final requestId =
+                              'GP${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ApplicationSubmittedScreen(
+                                service: service,
+                                requestId: requestId,
+                                submittedDate: DateTime.now(),
+                              ),
+                            ),
+                          );
+                          return;
+                        }
+                        try {
+                          final publishedForm = widget.publishedForm;
+                          if (publishedForm == null) {
+                            throw StateError(
+                              'Approved form version is unavailable.',
+                            );
+                          }
+                          setState(() => _submitting = true);
+                          _draft ??= await AppRuntime.serviceRequests
+                              .createDraft(
+                                serviceId: service.id,
+                                schemaVersion: publishedForm.version,
+                                formData: formValues,
+                                idempotencyKey: _draftIdempotencyKey,
+                              );
+                          final draft = _draft!;
+                          if (!_documentsUploaded) {
+                            for (final document in widget.documents) {
+                              await AppRuntime.serviceRequests
+                                  .uploadDraftDocument(
+                                    draft.id,
+                                    document.requirement.code,
+                                    document.filename,
+                                    document.mimeType,
+                                    document.bytes,
+                                  );
+                            }
+                            _documentsUploaded = true;
+                          }
+                          final request = await AppRuntime.serviceRequests
+                              .submitDraft(
+                                draftId: draft.id,
+                                expectedVersion: draft.version,
+                                idempotencyKey: _submissionIdempotencyKey,
+                              );
+                          if (!context.mounted) return;
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ApplicationSubmittedScreen(
+                                service: service,
+                                requestId: request.requestNumber,
+                                submittedDate:
+                                    request.submittedAt ?? request.createdAt,
+                              ),
+                            ),
+                          );
+                        } catch (error) {
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Application failed: $error'),
+                            ),
+                          );
+                        } finally {
+                          if (mounted) setState(() => _submitting = false);
+                        }
+                      },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: service.color,
                   foregroundColor: Colors.white,
@@ -503,13 +558,22 @@ class ApplicationReviewScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: Text(
-                  'अर्ज सादर करा / Submit Application',
-                  style: GoogleFonts.notoSans(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
+                child: _submitting
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Text(
+                        'अर्ज सादर करा / Submit Application',
+                        style: GoogleFonts.notoSans(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
               ),
             ),
           ),

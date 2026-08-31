@@ -51,7 +51,14 @@ void main() {
         ],
       },
       'document_requirements': [
-        {'label': 'Identity proof'},
+        {
+          'code': 'identity_proof',
+          'label_mr': 'ओळख पुरावा',
+          'label_en': 'Identity proof',
+          'required': true,
+          'accepted_mime_types': ['application/pdf', 'image/jpeg'],
+          'max_size_bytes': 10485760,
+        },
       ],
       'schema_checksum':
           'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
@@ -60,7 +67,9 @@ void main() {
     expect(form.version, 2);
     expect(form.fields.single.id, 'applicant_name');
     expect(form.fields.single.labelEn, 'Applicant name');
-    expect(form.requiredDocuments, ['Identity proof']);
+    expect(form.requiredDocuments, ['ओळख पुरावा / Identity proof']);
+    expect(form.documentRequirements.single.code, 'identity_proof');
+    expect(form.documentRequirements.single.required, isTrue);
   });
 
   test('rejects a published form with no fields', () {

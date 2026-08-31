@@ -128,3 +128,74 @@ class ServiceRequestCorrection {
         documentCode: json['document_code'] as String?,
       );
 }
+
+class ServiceRequestDraft {
+  const ServiceRequestDraft({
+    required this.id,
+    required this.serviceId,
+    required this.state,
+    required this.schemaVersionId,
+    required this.schemaVersion,
+    required this.schemaChecksum,
+    required this.formData,
+    required this.version,
+    required this.expiresAt,
+  });
+
+  factory ServiceRequestDraft.fromJson(Map<String, dynamic> json) =>
+      ServiceRequestDraft(
+        id: json['id'] as String,
+        serviceId: json['service_id'] as String,
+        state: json['state'] as String,
+        schemaVersionId: json['schema_version_id'] as String,
+        schemaVersion: json['schema_version'] as int,
+        schemaChecksum: json['schema_checksum'] as String,
+        formData: Map<String, dynamic>.from(json['form_data'] as Map),
+        version: json['version'] as int,
+        expiresAt: DateTime.parse(json['expires_at'] as String),
+      );
+
+  final String id;
+  final String serviceId;
+  final String state;
+  final String schemaVersionId;
+  final int schemaVersion;
+  final String schemaChecksum;
+  final Map<String, dynamic> formData;
+  final int version;
+  final DateTime expiresAt;
+}
+
+class ServiceRequestDraftDocument {
+  const ServiceRequestDraftDocument({
+    required this.id,
+    required this.draftId,
+    required this.documentCode,
+    required this.filename,
+    required this.mimeType,
+    required this.sizeBytes,
+    required this.sha256,
+    required this.status,
+  });
+
+  factory ServiceRequestDraftDocument.fromJson(Map<String, dynamic> json) =>
+      ServiceRequestDraftDocument(
+        id: json['id'] as String,
+        draftId: json['draft_id'] as String,
+        documentCode: json['document_code'] as String,
+        filename: json['original_filename'] as String,
+        mimeType: json['mime_type'] as String,
+        sizeBytes: json['size_bytes'] as int,
+        sha256: json['sha256'] as String,
+        status: json['status'] as String,
+      );
+
+  final String id;
+  final String draftId;
+  final String documentCode;
+  final String filename;
+  final String mimeType;
+  final int sizeBytes;
+  final String sha256;
+  final String status;
+}

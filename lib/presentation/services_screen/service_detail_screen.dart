@@ -49,10 +49,34 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
 
   Future<void> _openPublishedForm() async {
     if (!service.isOnline) return;
+    PublishedServiceForm? publishedForm;
+    var applicationService = service;
+    if (AppRuntime.usesRealApi) {
+      setState(() => _isLoading = true);
+      try {
+        publishedForm = await AppRuntime.services.fetchPublishedForm(
+          service.id,
+        );
+        applicationService = service.withPublishedForm(publishedForm);
+      } catch (error) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Unable to load approved form: $error')),
+        );
+        return;
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
+      }
+    }
+    if (!mounted) return;
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => ApplicationFormScreen(service: service),
+        builder: (_) => ApplicationFormScreen(
+          service: applicationService,
+          schemaVersion: publishedForm?.version,
+          publishedForm: publishedForm,
+        ),
       ),
     );
   }

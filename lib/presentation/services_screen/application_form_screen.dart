@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../models/service_model.dart';
@@ -10,11 +11,13 @@ class ApplicationFormScreen extends StatefulWidget {
   final ServiceModel service;
   final int? schemaVersion;
   final bool previewOnly;
+  final PublishedServiceForm? publishedForm;
 
   const ApplicationFormScreen({
     required this.service,
     this.schemaVersion,
     this.previewOnly = false,
+    this.publishedForm,
     super.key,
   });
 
@@ -26,6 +29,7 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final Map<String, dynamic> _formValues = {};
   final Map<String, String?> _uploadedFiles = {};
+  final Map<String, SelectedServiceDocument> _selectedDocuments = {};
   bool _agreedToTerms = false;
 
   @override
@@ -76,6 +80,11 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
             ],
             const SizedBox(height: 16),
             _buildFormFields(),
+            if (widget.publishedForm?.documentRequirements.isNotEmpty ??
+                false) ...[
+              const SizedBox(height: 16),
+              _buildDocumentRequirements(),
+            ],
             const SizedBox(height: 16),
             _buildTermsCheckbox(),
             const SizedBox(height: 80),
@@ -307,7 +316,9 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
             if (picked != null) {
               setState(() {
                 _formValues[field.id] =
-                    '${picked.day}/${picked.month}/${picked.year}';
+                    '${picked.year.toString().padLeft(4, '0')}-'
+                    '${picked.month.toString().padLeft(2, '0')}-'
+                    '${picked.day.toString().padLeft(2, '0')}';
               });
             }
           },
@@ -542,6 +553,145 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
     );
   }
 
+  Widget _buildDocumentRequirements() {
+    final requirements = widget.publishedForm!.documentRequirements;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceLight,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'आवश्यक कागदपत्रे / Required Documents',
+            style: GoogleFonts.notoSans(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: AppTheme.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 14),
+          ...requirements.map((requirement) {
+            final selected = _selectedDocuments[requirement.code];
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: InkWell(
+                onTap: widget.previewOnly
+                    ? null
+                    : () => _pickRequiredDocument(requirement),
+                borderRadius: BorderRadius.circular(10),
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: selected == null
+                        ? AppTheme.surfaceVariantLight
+                        : AppTheme.successContainer,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: selected == null
+                          ? AppTheme.outlineLight
+                          : AppTheme.success,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        selected == null
+                            ? Icons.upload_file_outlined
+                            : Icons.check_circle_rounded,
+                        color: selected == null
+                            ? AppTheme.textTertiary
+                            : AppTheme.success,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${requirement.labelMr} / ${requirement.labelEn}'
+                              '${requirement.required ? ' *' : ''}',
+                              style: GoogleFonts.notoSans(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: AppTheme.textPrimary,
+                              ),
+                            ),
+                            Text(
+                              selected?.filename ??
+                                  'PDF/JPEG/PNG • max ${(requirement.maxSizeBytes / 1048576).round()} MiB',
+                              style: GoogleFonts.notoSans(
+                                fontSize: 11,
+                                color: AppTheme.textTertiary,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (selected != null)
+                        IconButton(
+                          onPressed: () => setState(
+                            () => _selectedDocuments.remove(requirement.code),
+                          ),
+                          icon: const Icon(Icons.close_rounded, size: 18),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _pickRequiredDocument(
+    ServiceDocumentRequirement requirement,
+  ) async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const ['pdf', 'jpg', 'jpeg', 'png'],
+      withData: true,
+      allowMultiple: false,
+    );
+    if (result == null || result.files.isEmpty || !mounted) return;
+    final file = result.files.single;
+    final bytes = file.bytes;
+    final extension = (file.extension ?? '').toLowerCase();
+    final mimeType = switch (extension) {
+      'pdf' => 'application/pdf',
+      'jpg' || 'jpeg' => 'image/jpeg',
+      'png' => 'image/png',
+      _ => '',
+    };
+    if (bytes == null ||
+        bytes.isEmpty ||
+        bytes.length > requirement.maxSizeBytes ||
+        !requirement.acceptedMimeTypes.contains(mimeType)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Invalid file. Use an approved type within '
+            '${(requirement.maxSizeBytes / 1048576).round()} MiB.',
+          ),
+        ),
+      );
+      return;
+    }
+    setState(() {
+      _selectedDocuments[requirement.code] = SelectedServiceDocument(
+        requirement: requirement,
+        filename: file.name,
+        mimeType: mimeType,
+        bytes: bytes,
+      );
+    });
+  }
+
   Widget _buildTermsCheckbox() {
     return Container(
       padding: const EdgeInsets.all(14),
@@ -620,6 +770,25 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
               return;
             }
             if (_formKey.currentState?.validate() ?? false) {
+              final missingDocuments = widget
+                  .publishedForm
+                  ?.documentRequirements
+                  .where(
+                    (item) =>
+                        item.required &&
+                        !_selectedDocuments.containsKey(item.code),
+                  )
+                  .toList(growable: false);
+              if (missingDocuments?.isNotEmpty ?? false) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Upload all required documents / सर्व आवश्यक कागदपत्रे अपलोड करा',
+                    ),
+                  ),
+                );
+                return;
+              }
               _formKey.currentState?.save();
               HapticFeedback.mediumImpact();
               Navigator.push(
@@ -628,6 +797,10 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
                   builder: (_) => ApplicationReviewScreen(
                     service: widget.service,
                     formValues: Map<String, dynamic>.from(_formValues),
+                    publishedForm: widget.publishedForm,
+                    documents: _selectedDocuments.values.toList(
+                      growable: false,
+                    ),
                   ),
                 ),
               );

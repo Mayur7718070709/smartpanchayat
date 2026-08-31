@@ -59,14 +59,17 @@ class PublishedServiceForm {
     required this.schemaVersionId,
     required this.version,
     required this.fields,
-    required this.requiredDocuments,
+    required this.documentRequirements,
     required this.schemaChecksum,
   });
 
   final String schemaVersionId;
   final int version;
   final List<ServiceFormField> fields;
-  final List<String> requiredDocuments;
+  final List<ServiceDocumentRequirement> documentRequirements;
+  List<String> get requiredDocuments => documentRequirements
+      .map((document) => '${document.labelMr} / ${document.labelEn}')
+      .toList(growable: false);
   final String schemaChecksum;
 
   factory PublishedServiceForm.fromApi(Map<String, dynamic> map) {
@@ -94,12 +97,60 @@ class PublishedServiceForm {
       schemaVersionId: map['schema_version_id'] as String,
       version: map['version'] as int,
       fields: fields,
-      requiredDocuments: ServiceModel.documentLabels(
-        map['document_requirements'],
-      ),
+      documentRequirements: (map['document_requirements'] as List<dynamic>)
+          .map(
+            (item) => ServiceDocumentRequirement.fromApi(
+              item as Map<String, dynamic>,
+            ),
+          )
+          .toList(growable: false),
       schemaChecksum: map['schema_checksum'] as String,
     );
   }
+}
+
+class ServiceDocumentRequirement {
+  const ServiceDocumentRequirement({
+    required this.code,
+    required this.labelMr,
+    required this.labelEn,
+    required this.required,
+    required this.acceptedMimeTypes,
+    required this.maxSizeBytes,
+  });
+
+  factory ServiceDocumentRequirement.fromApi(Map<String, dynamic> map) =>
+      ServiceDocumentRequirement(
+        code: map['code'] as String,
+        labelMr: map['label_mr'] as String,
+        labelEn: map['label_en'] as String,
+        required: map['required'] as bool? ?? false,
+        acceptedMimeTypes: (map['accepted_mime_types'] as List<dynamic>)
+            .map((value) => value.toString())
+            .toList(growable: false),
+        maxSizeBytes: map['max_size_bytes'] as int,
+      );
+
+  final String code;
+  final String labelMr;
+  final String labelEn;
+  final bool required;
+  final List<String> acceptedMimeTypes;
+  final int maxSizeBytes;
+}
+
+class SelectedServiceDocument {
+  const SelectedServiceDocument({
+    required this.requirement,
+    required this.filename,
+    required this.mimeType,
+    required this.bytes,
+  });
+
+  final ServiceDocumentRequirement requirement;
+  final String filename;
+  final String mimeType;
+  final List<int> bytes;
 }
 
 class ServiceModel {

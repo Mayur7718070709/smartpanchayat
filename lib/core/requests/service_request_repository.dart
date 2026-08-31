@@ -22,6 +22,67 @@ class ServiceRequestRepository {
     decode: (data) => ServiceRequest.fromJson(data as Map<String, dynamic>),
   );
 
+  Future<ServiceRequestDraft> createDraft({
+    required String serviceId,
+    required int schemaVersion,
+    required Map<String, dynamic> formData,
+    required String idempotencyKey,
+    String? applicantNote,
+  }) => _apiClient.post<ServiceRequestDraft>(
+    '/api/v1/service-request-drafts',
+    data: {
+      'service_id': serviceId,
+      'schema_version': schemaVersion,
+      'form_data': formData,
+      'applicant_note': applicantNote,
+    },
+    headers: {'Idempotency-Key': idempotencyKey},
+    decode: (data) =>
+        ServiceRequestDraft.fromJson(data as Map<String, dynamic>),
+  );
+
+  Future<ServiceRequestDraft> updateDraft({
+    required String draftId,
+    required int expectedVersion,
+    required Map<String, dynamic> formData,
+    String? applicantNote,
+  }) => _apiClient.put<ServiceRequestDraft>(
+    '/api/v1/service-request-drafts/$draftId',
+    data: {
+      'expected_version': expectedVersion,
+      'form_data': formData,
+      'applicant_note': applicantNote,
+    },
+    decode: (data) =>
+        ServiceRequestDraft.fromJson(data as Map<String, dynamic>),
+  );
+
+  Future<ServiceRequestDraftDocument> uploadDraftDocument(
+    String draftId,
+    String code,
+    String filename,
+    String mimeType,
+    List<int> bytes,
+  ) => _apiClient.postBytes<ServiceRequestDraftDocument>(
+    '/api/v1/service-request-drafts/$draftId/documents',
+    bytes,
+    contentType: mimeType,
+    headers: {'X-Document-Code': code, 'X-Filename': filename},
+    decode: (data) =>
+        ServiceRequestDraftDocument.fromJson(data as Map<String, dynamic>),
+  );
+
+  Future<ServiceRequest> submitDraft({
+    required String draftId,
+    required int expectedVersion,
+    required String idempotencyKey,
+  }) => _apiClient.post<ServiceRequest>(
+    '/api/v1/service-request-drafts/$draftId/submit',
+    data: {'expected_version': expectedVersion},
+    headers: {'Idempotency-Key': idempotencyKey},
+    decode: (data) => ServiceRequest.fromJson(data as Map<String, dynamic>),
+  );
+
   Future<List<ServiceRequest>> fetchAll() =>
       _apiClient.get<List<ServiceRequest>>(
         '/api/v1/service-requests',

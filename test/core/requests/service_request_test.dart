@@ -43,4 +43,39 @@ void main() {
     expect(history.newStatus, 'UNDER_REVIEW');
     expect(history.remark, 'Review started');
   });
+
+  test('decodes a versioned service-request draft', () {
+    final draft = ServiceRequestDraft.fromJson({
+      'id': 'draft-id',
+      'service_id': 'service-id',
+      'state': 'ACTIVE',
+      'schema_version_id': 'schema-id',
+      'schema_version': 1,
+      'schema_checksum': List.filled(64, 'a').join(),
+      'form_data': {'applicant_name': 'Mayur'},
+      'version': 1,
+      'expires_at': '2026-09-30T10:00:00Z',
+    });
+
+    expect(draft.state, 'ACTIVE');
+    expect(draft.schemaVersion, 1);
+    expect(draft.formData['applicant_name'], 'Mayur');
+  });
+
+  test('decodes a private draft document receipt', () {
+    final document = ServiceRequestDraftDocument.fromJson({
+      'id': 'document-id',
+      'draft_id': 'draft-id',
+      'document_code': 'aadhaar_card',
+      'original_filename': 'aadhaar.pdf',
+      'mime_type': 'application/pdf',
+      'size_bytes': 1024,
+      'sha256': List.filled(64, 'b').join(),
+      'status': 'UPLOADED',
+    });
+
+    expect(document.documentCode, 'aadhaar_card');
+    expect(document.mimeType, 'application/pdf');
+    expect(document.status, 'UPLOADED');
+  });
 }
