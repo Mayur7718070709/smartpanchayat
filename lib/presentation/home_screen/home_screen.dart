@@ -32,7 +32,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   late List<NoticeModel> _notices;
-  final _citizen = MockData.citizenProfile;
+  final Map<String, dynamic> _citizen = Map.of(MockData.citizenProfile);
   HomeLoadState _loadState = HomeLoadState.loading;
 
   @override
@@ -58,7 +58,9 @@ class _HomeScreenState extends State<HomeScreen> {
         _citizen['panchayatName'] = panchayat.name;
         _notices = await AppRuntime.notices.list(limit: 4);
         setState(() => _loadState = HomeLoadState.loaded);
-      } catch (_) {
+      } catch (error, stackTrace) {
+        debugPrint('Home data load failed: $error');
+        debugPrintStack(stackTrace: stackTrace);
         if (mounted) setState(() => _loadState = HomeLoadState.error);
       }
       return;
