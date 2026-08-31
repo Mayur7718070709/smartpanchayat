@@ -1,8 +1,11 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../models/service_model.dart';
+import '../../core/app_runtime.dart';
 import '../../theme/app_theme.dart';
 import './application_submitted_screen.dart';
 
@@ -450,20 +453,47 @@ class ApplicationReviewScreen extends StatelessWidget {
             child: SizedBox(
               height: 52,
               child: ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
                   HapticFeedback.mediumImpact();
-                  final requestId =
-                      'GP${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => ApplicationSubmittedScreen(
-                        service: service,
-                        requestId: requestId,
-                        submittedDate: DateTime.now(),
+                  if (!AppRuntime.usesRealApi) {
+                    final requestId =
+                        'GP${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ApplicationSubmittedScreen(
+                          service: service,
+                          requestId: requestId,
+                          submittedDate: DateTime.now(),
+                        ),
                       ),
-                    ),
-                  );
+                    );
+                    return;
+                  }
+                  try {
+                    final request = await AppRuntime.serviceRequests.create(
+                      serviceId: service.id,
+                      formData: formValues,
+                      idempotencyKey: _newUuid(),
+                    );
+                    if (!context.mounted) return;
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ApplicationSubmittedScreen(
+                          service: service,
+                          requestId: request.requestNumber,
+                          submittedDate:
+                              request.submittedAt ?? request.createdAt,
+                        ),
+                      ),
+                    );
+                  } catch (error) {
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Application failed: $error')),
+                    );
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: service.color,
@@ -486,6 +516,18 @@ class ApplicationReviewScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _newUuid() {
+    final random = Random.secure();
+    final bytes = List<int>.generate(16, (_) => random.nextInt(256));
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    final hex = bytes
+        .map((value) => value.toRadixString(16).padLeft(2, '0'))
+        .join();
+    return '${hex.substring(0, 8)}-${hex.substring(8, 12)}-'
+        '${hex.substring(12, 16)}-${hex.substring(16, 20)}-${hex.substring(20)}';
   }
 }
 

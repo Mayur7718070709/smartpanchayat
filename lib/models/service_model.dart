@@ -142,23 +142,39 @@ class ServiceModel {
   factory ServiceModel.fromApi(Map<String, dynamic> map) {
     final feeValue = map['fee'];
     final apiDocumentLabels = documentLabels(map['required_documents']);
+    final schema = map['form_schema'];
+    final rawFields = schema is Map ? schema['fields'] : null;
+    final fields = rawFields is List
+        ? rawFields
+              .whereType<Map>()
+              .map(
+                (field) => ServiceFormField.fromMap(
+                  field.map((key, value) => MapEntry(key.toString(), value)),
+                ),
+              )
+              .where((field) => field.id.isNotEmpty && field.labelEn.isNotEmpty)
+              .toList(growable: false)
+        : const <ServiceFormField>[];
+    final fallbackName = map['name'] as String;
+    final fallbackDescription = map['description'] as String? ?? '';
 
     return ServiceModel(
       id: map['id'] as String,
-      nameMr: map['name'] as String,
-      nameEn: '',
-      description: map['description'] as String? ?? '',
-      descriptionEn: '',
-      iconName: 'miscellaneous_services',
-      colorHex: '#1565C0',
+      nameMr: map['name_mr'] as String? ?? fallbackName,
+      nameEn: map['name_en'] as String? ?? fallbackName,
+      description: map['description_mr'] as String? ?? fallbackDescription,
+      descriptionEn: map['description_en'] as String? ?? fallbackDescription,
+      iconName: map['icon_name'] as String? ?? 'miscellaneous_services',
+      colorHex: map['color_hex'] as String? ?? '#1565C0',
       category: map['category_name'] as String? ?? 'other',
       processingDays: map['estimated_days'] as int? ?? 0,
       fee: feeValue is num
           ? feeValue.toDouble()
           : double.parse(feeValue.toString()),
-      eligibilityMr: '',
-      eligibilityEn: '',
+      eligibilityMr: map['eligibility_mr'] as String? ?? '',
+      eligibilityEn: map['eligibility_en'] as String? ?? '',
       requiredDocuments: apiDocumentLabels,
+      formFields: fields,
       isOnline: map['is_online'] as bool? ?? false,
       contentStatus: map['content_status'] as String?,
     );

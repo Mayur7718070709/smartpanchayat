@@ -201,23 +201,9 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
         color: AppTheme.surfaceLight,
         borderRadius: BorderRadius.circular(16),
       ),
-      child: Column(
-        children: [
-          _buildTextField(
-            id: 'full_name',
-            labelMr: 'पूर्ण नाव',
-            labelEn: 'Full Name',
-            required: true,
-          ),
-          const SizedBox(height: 16),
-          _buildTextField(
-            id: 'contact',
-            labelMr: 'संपर्क क्रमांक',
-            labelEn: 'Contact Number',
-            required: true,
-            keyboardType: TextInputType.phone,
-          ),
-        ],
+      child: const Text(
+        'या सेवेसाठी सध्या कोणतीही अतिरिक्त माहिती आवश्यक नाही.\n'
+        'No additional fields are required by the current service contract.',
       ),
     );
   }

@@ -26,7 +26,7 @@ void main() {
     });
 
     expect(service.nameMr, 'Birth Certificate');
-    expect(service.nameEn, isEmpty);
+    expect(service.nameEn, 'Birth Certificate');
     expect(service.fee, 25);
     expect(service.processingDays, 7);
     expect(service.requiredDocuments, ['Identity proof', 'Address proof']);

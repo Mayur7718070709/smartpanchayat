@@ -6,6 +6,22 @@ class ServiceRequestRepository {
 
   final ApiClient _apiClient;
 
+  Future<ServiceRequest> create({
+    required String serviceId,
+    required Map<String, dynamic> formData,
+    required String idempotencyKey,
+    String? applicantNote,
+  }) => _apiClient.post<ServiceRequest>(
+    '/api/v1/service-requests',
+    data: {
+      'service_id': serviceId,
+      'form_data': formData,
+      'applicant_note': applicantNote,
+    },
+    headers: {'Idempotency-Key': idempotencyKey},
+    decode: (data) => ServiceRequest.fromJson(data as Map<String, dynamic>),
+  );
+
   Future<List<ServiceRequest>> fetchAll() =>
       _apiClient.get<List<ServiceRequest>>(
         '/api/v1/service-requests',

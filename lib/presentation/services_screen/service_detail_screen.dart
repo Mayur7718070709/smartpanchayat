@@ -19,7 +19,6 @@ class ServiceDetailScreen extends StatefulWidget {
 class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
   late ServiceModel _service;
   bool _isLoading = false;
-  bool _isFormLoading = false;
   Object? _loadError;
 
   ServiceModel get service => _service;
@@ -49,41 +48,13 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
   }
 
   Future<void> _openPublishedForm() async {
-    if (!AppRuntime.usesRealApi) {
-      await Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => ApplicationFormScreen(service: service),
-        ),
-      );
-      return;
-    }
-    setState(() => _isFormLoading = true);
-    try {
-      final form = await AppRuntime.services.fetchPublishedForm(service.id);
-      if (!mounted) return;
-      await Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => ApplicationFormScreen(
-            service: service.withPublishedForm(form),
-            schemaVersion: form.version,
-            previewOnly: true,
-          ),
-        ),
-      );
-    } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'No approved online form is available for this service.',
-          ),
-        ),
-      );
-    } finally {
-      if (mounted) setState(() => _isFormLoading = false);
-    }
+    if (!service.isOnline) return;
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ApplicationFormScreen(service: service),
+      ),
+    );
   }
 
   @override
@@ -469,12 +440,10 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
         width: double.infinity,
         height: 52,
         child: ElevatedButton(
-          onPressed: _isFormLoading
-              ? null
-              : () {
-                  HapticFeedback.mediumImpact();
-                  _openPublishedForm();
-                },
+          onPressed: () {
+            HapticFeedback.mediumImpact();
+            _openPublishedForm();
+          },
           style: ElevatedButton.styleFrom(
             backgroundColor: service.color,
             foregroundColor: Colors.white,
@@ -483,26 +452,20 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
               borderRadius: BorderRadius.circular(14),
             ),
           ),
-          child: _isFormLoading
-              ? const SizedBox(
-                  width: 22,
-                  height: 22,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.edit_document, size: 20),
-                    const SizedBox(width: 8),
-                    Text(
-                      'अर्ज करा / Apply Now',
-                      style: GoogleFonts.notoSans(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.edit_document, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'अर्ज करा / Apply Now',
+                style: GoogleFonts.notoSans(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
                 ),
+              ),
+            ],
+          ),
         ),
       ),
     );
